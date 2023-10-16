@@ -12,7 +12,7 @@
 
     + Body
 
-            is_approved=true&uuid=2542c34e-4db9-42e7-92e2-d10e00c4645a        
+            is_approved=true&uuid=9935d5c9-834b-4fd4-adf4-67c44c2bf3b6        
 
 + Response 201 (application/json)
 
@@ -21,7 +21,7 @@
     + Body
 
             {
-                "uuid": "2542c34e-4db9-42e7-92e2-d10e00c4645a",
+                "uuid": "9935d5c9-834b-4fd4-adf4-67c44c2bf3b6",
                 "is_approved": true
             }        
 
@@ -34,7 +34,7 @@
     + Body
 
             {
-                "uuid": "2542c34e-4db9-42e7-92e2-d10e00c4645a",
+                "uuid": "9935d5c9-834b-4fd4-adf4-67c44c2bf3b6",
                 "is_approved": true
             }        
 
@@ -45,8 +45,140 @@
     + Body
 
             {
-                "uuid": "2542c34e-4db9-42e7-92e2-d10e00c4645a",
+                "uuid": "9935d5c9-834b-4fd4-adf4-67c44c2bf3b6",
                 "is_approved": true
             }        
 
+
+
+## /approval/{id}
+
++ Parameters
+    + id: `85f552ac-4891-409e-afd7-d34484462d89` (string)
+
+### GET [GET]
+
+
++ Response 200 (text/html)
+
+
+
+    + Body
+
+            
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>PR Compliance App</title>    
+		
+    </head>
+    <body>
+		<p>The following form must be submitted before the PR can be merged</p>
+		<br>
+		<h1>Approval</h1>
+		<form action="http://localhost:8080/approval" method="POST" novalidate>
+			<input type="hidden" id="uuid" name="uuid" value="85f552ac-4891-409e-afd7-d34484462d89">
+			<input type="hidden" id="is_approved" name="is_approved" value="true">	
+				<input type="submit" value="Approve">
+			</div>
+		</form>
+    </body>
+</html>
+	        
+
+
+
+## /approval{?id}
+
++ Parameters
+    + id: `85f552ac-4891-409e-afd7-d34484462d89` (string)
+
+### GET [GET]
+
+
++ Response 200 (text/html)
+
+
+
+    + Body
+
+            
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>PR Compliance App</title>    
+		
+    </head>
+    <body>
+		<p>The following form must be submitted before the PR can be merged</p>
+		<br>
+		<h1>Approval</h1>
+		<form action="http://localhost:8080/approval" method="POST" novalidate>
+			<input type="hidden" id="uuid" name="uuid" value="85f552ac-4891-409e-afd7-d34484462d89">
+			<input type="hidden" id="is_approved" name="is_approved" value="true">	
+				<input type="submit" value="Approve">
+			</div>
+		</form>
+    </body>
+</html>
+	        
+
+
+
+## /health
+
+### GET [GET]
+
+
++ Response 200 (application/json)
+
+
+
+    + Body
+
+            {
+                "alive": true
+            }        
+
+
+
+## /pull_requests
+
+### GET [GET]
+
+
++ Response 200 (application/json)
+
+
+
+    + Body
+
+            [
+                {
+                    "id": 1,
+                    "repo_id": 444,
+                    "pr_id": 991,
+                    "pr_number": 1,
+                    "opened_by": 651,
+                    "installation_id": 0,
+                    "is_merged": false
+                }
+            ]        
+
+
+
+## /webhook_events
+
+### POST [POST]
+
+
++ Request (application/json)
+
+
+
+    + Body
+
+            {}        
+
++ Response 200 
 

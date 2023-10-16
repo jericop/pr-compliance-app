@@ -51,7 +51,7 @@ func TestGetPullRequests(t *testing.T) {
 
 	t.Run("StatusInternalServerError json marshal error", func(t *testing.T) {
 		apiServer.jsonMarshal = func(v interface{}) ([]byte, error) {
-			return []byte{}, fmt.Errorf("Marshalling failed")
+			return []byte{}, fmt.Errorf("marshal error")
 		}
 
 		_ = makeHttpRequest(t, http.StatusInternalServerError, func() (resp *http.Response, err error) {
