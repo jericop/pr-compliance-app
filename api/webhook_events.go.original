@@ -286,8 +286,6 @@ func (server *Server) GetOrCreatePullRequestAction(ctx context.Context, name str
 			return err
 		}
 		server.KnownPullRequestActions[name] = struct{}{}
-	} else {
-		log.Printf("err: %v", err)
 	}
 
 	return nil
