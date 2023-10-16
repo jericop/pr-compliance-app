@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
@@ -13,126 +14,68 @@ import (
 var validPullRequests []postgres.PullRequest
 
 func TestGetPullRequests(t *testing.T) {
-	expected := []postgres.PullRequest{
-		{ID: 1, PrID: 991, RepoID: 444, PrNumber: 1, OpenedBy: 651, IsMerged: false},
-	}
+	urlPath := getRouteUrlPath(t, apiServer.Router, "GetPullRequests")
 
-	// Test the happy path first
-	fakeStore.GetPullRequestsCall.Returns.PullRequestSlice = expected
+	// This http server does not record requests and requests to it will not show up in the api blueprint document.
+	server := httptest.NewServer(apiServer.Router)
+	defer server.Close()
 
-	urlPath, err := router.Get("GetPullRequests").URL()
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) be nil", err)
-	}
+	t.Run("StatusOK test2doc", func(t *testing.T) {
+		expected := []postgres.PullRequest{
+			{ID: 1, PrID: 991, RepoID: 444, PrNumber: 1, OpenedBy: 651, IsMerged: false},
+		}
 
-	resp, err := http.Get(server.URL + urlPath.String())
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) be nil", err)
-	}
+		fakeStore.GetPullRequestsCall.Returns.Error = nil
+		fakeStore.GetPullRequestsCall.Returns.PullRequestSlice = expected
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'http.StatusOK' (%v)", resp.StatusCode, http.StatusOK)
-	}
+		resp := makeHttpRequest(t, http.StatusOK, func() (resp *http.Response, err error) {
+			return http.Get(test2docServer.URL + urlPath)
+		})
 
-	decoder := json.NewDecoder(resp.Body)
-	defer resp.Body.Close()
+		decoder := json.NewDecoder(resp.Body)
+		defer resp.Body.Close()
 
-	result := []postgres.PullRequest{}
+		result := []postgres.PullRequest{}
+		if err := decoder.Decode(&result); err != nil {
+			t.Fatalf("expected 'err' (%v) be nil", err)
+		}
 
-	err = decoder.Decode(&result)
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) be nil", err)
-	}
+		if !reflect.DeepEqual(result, expected) {
+			t.Fatalf("expected 'result' (%v) to equal 'expected' (%v)", result, expected)
+		}
 
-	indentedJson, err := PrettyStruct(result)
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) to be nil", err)
-	}
-	fmt.Println("PrettyStruct(pullRequests)\n", indentedJson)
+		if fakeStore.GetPullRequestsCall.CallCount != 1 {
+			t.Errorf("unexpected call count: %d\n", fakeStore.GetPullRequestsCall.CallCount)
+		}
+	})
 
-	if !reflect.DeepEqual(result, expected) {
-		t.Fatalf("expected 'result' (%v) to equal 'expected' (%v)", result, expected)
-	}
+	t.Run("StatusInternalServerError json marshal error", func(t *testing.T) {
+		apiServer.jsonMarshal = func(v interface{}) ([]byte, error) {
+			return []byte{}, fmt.Errorf("Marshalling failed")
+		}
 
-	if fakeStore.GetPullRequestsCall.CallCount != 1 {
-		t.Error("unexpected call count")
-	}
+		_ = makeHttpRequest(t, http.StatusInternalServerError, func() (resp *http.Response, err error) {
+			return http.Get(server.URL + urlPath)
+		})
 
-	// Set apiServer.jsonMarshal to an anonymous function with the same signature as json.Marshal in order to force an error.
-	apiServer.jsonMarshal = func(v interface{}) ([]byte, error) {
-		return []byte{}, fmt.Errorf("Marshalling failed")
-	}
-	resp, err = http.Get(server.URL + urlPath.String())
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) to be nil", err)
-	}
+		apiServer.jsonMarshal = json.Marshal
 
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'http.StatusInternalServerError' (%v)", resp.StatusCode, http.StatusInternalServerError)
-	}
+		if fakeStore.GetPullRequestsCall.CallCount != 2 {
+			t.Errorf("unexpected call count: %d\n", fakeStore.GetPullRequestsCall.CallCount)
+		}
+	})
 
-	if fakeStore.GetPullRequestsCall.CallCount != 2 {
-		t.Error("unexpected call count")
-	}
+	t.Run("StatusInternalServerError store", func(t *testing.T) {
+		// Test an error from the database
+		fakeStore.GetPullRequestsCall.Returns.Error = fmt.Errorf("db error")
+		fakeStore.GetPullRequestsCall.Returns.PullRequestSlice = []postgres.PullRequest{}
 
-	// Set the
-	fakeStore.GetPullRequestsCall.Returns.PullRequestSlice = []postgres.PullRequest{}
-	fakeStore.GetPullRequestsCall.Returns.Error = fmt.Errorf("db error")
+		_ = makeHttpRequest(t, http.StatusInternalServerError, func() (resp *http.Response, err error) {
+			return http.Get(server.URL + urlPath)
+		})
 
-	resp, err = http.Get(server.URL + urlPath.String())
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) to be nil", err)
-	}
-
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'http.StatusInternalServerError' (%v)", resp.StatusCode, http.StatusInternalServerError)
-	}
-
-	if fakeStore.GetPullRequestsCall.CallCount != 3 {
-		t.Error("unexpected call count")
-	}
+		if fakeStore.GetPullRequestsCall.CallCount != 3 {
+			t.Errorf("unexpected call count: %d\n", fakeStore.GetPullRequestsCall.CallCount)
+		}
+	})
 }
-
-func PrettyStruct(data interface{}) (string, error) {
-	val, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		return "", err
-	}
-	return string(val), nil
-}
-
-// func TestGetFoo(t *testing.T) {
-// 	key := "ABeeSee"
-// 	urlPath, err := router.Get("GetFoo").URL("key", key)
-// 	if err != nil {
-// 		t.Fatalf("expected 'err' (%v) be nil", err)
-// 	}
-
-// 	resp, err := http.Get(server.URL + urlPath.String())
-// 	if err != nil {
-// 		t.Fatalf("expected 'err' (%v) be nil", err)
-// 	}
-
-// 	if resp.StatusCode != http.StatusOK {
-// 		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'http.StatusOK' (%v)", resp.StatusCode, http.StatusOK)
-// 	}
-
-// 	decoder := json.NewDecoder(resp.Body)
-// 	defer resp.Body.Close()
-
-// 	var foo Foo
-// 	err = decoder.Decode(&foo)
-// 	if err != nil {
-// 		t.Fatalf("expected 'err' (%v) be nil", err)
-// 	}
-
-// 	if foo.B != AllPullRequests[key].B {
-// 		t.Fatalf("expected 'foo.B' (%v) to equal 'AllPullRequests[key].B' (%v)", foo.B, AllPullRequests[key].B)
-// 	}
-// 	if foo.A != AllPullRequests[key].A {
-// 		t.Fatalf("expected 'foo.A' (%v) to equal 'AllPullRequests[key].A' (%v)", foo.A, AllPullRequests[key].A)
-// 	}
-// 	if foo.R != AllPullRequests[key].R {
-// 		t.Fatalf("expected 'foo.R' (%v) to equal 'AllPullRequests[key].R' (%v)", foo.R, AllPullRequests[key].R)
-// 	}
-// }

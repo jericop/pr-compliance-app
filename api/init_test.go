@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"net/http"
 	"os"
 	"testing"
 
@@ -12,31 +14,76 @@ import (
 )
 
 var router *mux.Router
-var server *test.Server
+
+// var server *httptest.Server
+var test2docServer *test.Server
 var apiServer *Server
 var fakeStore *fakes.Querier
 
 func TestMain(m *testing.M) {
 	var err error
-
 	fakeStore = &fakes.Querier{}
-	apiServer = NewServer(fakeStore)
-	router = apiServer.router
-	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(router))
+	apiServer = getApiServer(fakeStore)
+	apiServer.AddAllRoutes()
+	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.Router))
 
-	server, err = test.NewServer(router)
+	// This http server records requests/responses to generate the api blueprint document based on tests.
+	test2docServer, err = test.NewServer(apiServer.Router)
 	if err != nil {
 		panic(err.Error())
 	}
+
 	code := m.Run()
-	server.Finish()
+	test2docServer.Finish()
 	os.Exit(code)
 }
 
-func TestNothing(t *testing.T) {
-	var result bool = true
-
-	if !result {
-		t.Fatal("something has gone wrong")
+func getApiServer(store *fakes.Querier) *Server {
+	return &Server{
+		store:         store,
+		webhookSecret: "0123456789abcdef",
+		jsonMarshal:   json.Marshal,
+		Router:        mux.NewRouter(),
 	}
+}
+
+func getQuerierServer() (*fakes.Querier, *Server) {
+	store := &fakes.Querier{}
+	apiServer := getApiServer(store)
+	return store, apiServer
+}
+
+func getQuerierServerWithRoutes() (*fakes.Querier, *Server) {
+	store, apiServer := getQuerierServer()
+	apiServer.AddAllRoutes()
+	return store, apiServer
+}
+
+func getQuerierServerRouteUrl(t *testing.T, routeName string) (*fakes.Querier, *Server, string) {
+	store, apiServer := getQuerierServerWithRoutes()
+	urlPath, err := apiServer.Router.Get(routeName).URL()
+	if err != nil {
+		t.Fatalf("expected 'err' (%v) be nil", err)
+	}
+	return store, apiServer, urlPath.String()
+}
+
+func getRouteUrlPath(t *testing.T, router *mux.Router, routeName string) string {
+	urlPath, err := router.Get(routeName).URL()
+	if err != nil {
+		t.Fatalf("expected 'err' (%v) be nil", err)
+	}
+	return urlPath.String()
+}
+
+func makeHttpRequest(t *testing.T, expectedStatusCode int, httpRequestFunc func() (resp *http.Response, err error)) *http.Response {
+	resp, err := httpRequestFunc() // http.Get, http.Post, etc.. functions get called here
+	if err != nil {
+		t.Fatalf("expected 'err' (%v) be nil", err)
+	}
+
+	if resp.StatusCode != expectedStatusCode {
+		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v)", resp.StatusCode, http.StatusOK)
+	}
+	return resp
 }
