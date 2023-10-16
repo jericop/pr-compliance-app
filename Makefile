@@ -41,14 +41,14 @@ go-generate: ## Run go generate in all packages
 
 .PHONY: regen-mocks
 regen-mocks: ## Delete and regenerate all mocks
-	find . -type f | grep mocks/mock_ | xargs rm
-	find . -type f | grep mocks/matchers | xargs rm
+	sqlc-generate
+	find . -type f | grep mocks | xargs rm
 	@# not using $(PKG) here because that includes directories that have now
 	@# been made empty, causing go generate to fail.
 	./scripts/go-generate.sh
 
-.PHONY: sqlc
-sqlc:
+.PHONY: sqlc-generate
+sqlc-generate:
 	sqlc generate
 
 .PHONY: test
