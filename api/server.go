@@ -66,13 +66,20 @@ func (server *Server) GetRouter() *mux.Router {
 
 // Add all routes here
 func (server *Server) AddAllRoutes() {
+	server.AddHealthRoutes()
 	server.AddWebhookEventsRoutes()
-	server.AddPullRequestRoutes()
 	server.AddApprovalRoutes()
+	server.AddPullRequestRoutes()
+	server.AddHtmlRoutes()
 }
 
 func (server *Server) WithRoutes() *Server {
 	server.AddAllRoutes()
+	return server
+}
+
+func (server *Server) WithPrivateKey(key *rsa.PrivateKey) *Server {
+	server.githubPrivateKey = key
 	return server
 }
 

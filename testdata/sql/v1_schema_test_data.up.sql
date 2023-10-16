@@ -25,11 +25,11 @@ VALUES
   ('synchronize')
 ;
 
-INSERT INTO pull_request (pr_id, pr_number, repo_id, is_merged, opened_by)
+INSERT INTO pull_request (pr_id, pr_number, repo_id, is_merged, installation_id, opened_by)
 VALUES
-    (991, 1, 1, 'false', 1),
-    (992, 2, 1, 'false', 2),
-    (993, 1, 2, 'true', 3) -- already merged
+    (991, 1, 1, 'false', 54321, 1),
+    (992, 2, 1, 'false', 54321, 2),
+    (993, 1, 2, 'true', 54321, 3) -- already merged
 ;
 
 INSERT INTO pull_request_event (pr_id, action, sha, is_merged)
@@ -61,6 +61,5 @@ VALUES
   -- This is an example where the approval was done for the last commit before being merged
   ('a0b3adb0-174c-4be5-984e-3005aeffbf65', 992, 'f2ad6c76f0115a6ba5b00456a849810e7ec0af20', true),
   
-  -- This is an example where the PR
-  ('7829491b-9bdc-4167-87e3-73a334fb5916', 993, '4bcfe98e640c8284511312660fb8709b0afa888e', true)
+  ('7829491b-9bdc-4167-87e3-73a334fb5916', 993, '4bcfe98e640c8284511312660fb8709b0afa888e', false)
 ;

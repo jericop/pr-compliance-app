@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS pull_request (
   pr_id INT NOT NULL,
   pr_number INT NOT NULL,
   opened_by INT NOT NULL ,
+  installation_id INT NOT NULL,
   is_merged BOOLEAN NOT NULL DEFAULT false,
   
   UNIQUE(pr_id),

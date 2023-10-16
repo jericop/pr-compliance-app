@@ -84,6 +84,7 @@ func newGithubAppInstallationClient(ctx context.Context, appClient *github.Clien
 }
 
 type githubFactoryInterface interface {
+	NewAppClient(context.Context) (*github.Client, error)
 	NewInstallationClient(context.Context, int64) (*github.Client, error)
 	ValidatWebhookRequest(*http.Request) (interface{}, error)
 }
@@ -92,8 +93,16 @@ type githubFactory struct {
 	server *Server
 }
 
-func NewGithubFactory(server *Server) githubFactoryInterface {
+func NewGithubFactory(server *Server) *githubFactory {
 	return &githubFactory{server: server}
+}
+
+func (f *githubFactory) NewAppClient(ctx context.Context) (*github.Client, error) {
+	appClient, err := f.server.newGithubAppClient(ctx)
+	if err != nil {
+		return &github.Client{}, err
+	}
+	return appClient, nil
 }
 
 func (f *githubFactory) NewInstallationClient(ctx context.Context, installationID int64) (*github.Client, error) {

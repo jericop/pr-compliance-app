@@ -25,6 +25,7 @@ type Querier interface {
 	GetApprovalByPrIDSha(ctx context.Context, arg GetApprovalByPrIDShaParams) (Approval, error)
 	GetApprovalByUuid(ctx context.Context, uuid string) (Approval, error)
 	GetApprovals(ctx context.Context) ([]Approval, error)
+	GetCreateStatusInputsFromApprovalUuid(ctx context.Context, uuid string) (GetCreateStatusInputsFromApprovalUuidRow, error)
 	GetGithubUser(ctx context.Context, id int32) (GhUser, error)
 	GetGithubUsers(ctx context.Context) ([]GhUser, error)
 	GetPullRequestAction(ctx context.Context, name string) (string, error)

@@ -209,6 +209,19 @@ type Querier struct {
 		}
 		Stub func(context.Context) ([]postgres.Approval, error)
 	}
+	GetCreateStatusInputsFromApprovalUuidCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx  context.Context
+			Uuid string
+		}
+		Returns struct {
+			GetCreateStatusInputsFromApprovalUuidRow postgres.GetCreateStatusInputsFromApprovalUuidRow
+			Error                                    error
+		}
+		Stub func(context.Context, string) (postgres.GetCreateStatusInputsFromApprovalUuidRow, error)
+	}
 	GetGithubUserCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -600,6 +613,17 @@ func (f *Querier) GetApprovals(param1 context.Context) ([]postgres.Approval, err
 		return f.GetApprovalsCall.Stub(param1)
 	}
 	return f.GetApprovalsCall.Returns.ApprovalSlice, f.GetApprovalsCall.Returns.Error
+}
+func (f *Querier) GetCreateStatusInputsFromApprovalUuid(param1 context.Context, param2 string) (postgres.GetCreateStatusInputsFromApprovalUuidRow, error) {
+	f.GetCreateStatusInputsFromApprovalUuidCall.mutex.Lock()
+	defer f.GetCreateStatusInputsFromApprovalUuidCall.mutex.Unlock()
+	f.GetCreateStatusInputsFromApprovalUuidCall.CallCount++
+	f.GetCreateStatusInputsFromApprovalUuidCall.Receives.Ctx = param1
+	f.GetCreateStatusInputsFromApprovalUuidCall.Receives.Uuid = param2
+	if f.GetCreateStatusInputsFromApprovalUuidCall.Stub != nil {
+		return f.GetCreateStatusInputsFromApprovalUuidCall.Stub(param1, param2)
+	}
+	return f.GetCreateStatusInputsFromApprovalUuidCall.Returns.GetCreateStatusInputsFromApprovalUuidRow, f.GetCreateStatusInputsFromApprovalUuidCall.Returns.Error
 }
 func (f *Querier) GetGithubUser(param1 context.Context, param2 int32) (postgres.GhUser, error) {
 	f.GetGithubUserCall.mutex.Lock()

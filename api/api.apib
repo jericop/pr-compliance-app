@@ -6,6 +6,27 @@
 ### POST [POST]
 
 
++ Request (application/x-www-form-urlencoded)
+
+
+
+    + Body
+
+            is_approved=true&uuid=2542c34e-4db9-42e7-92e2-d10e00c4645a        
+
++ Response 201 (application/json)
+
+
+
+    + Body
+
+            {
+                "uuid": "2542c34e-4db9-42e7-92e2-d10e00c4645a",
+                "is_approved": true
+            }        
+
+
+
 + Request (application/json)
 
 
@@ -13,7 +34,7 @@
     + Body
 
             {
-                "uuid": "752b007e-4ded-4cd0-b27a-afb86872e5c2",
+                "uuid": "2542c34e-4db9-42e7-92e2-d10e00c4645a",
                 "is_approved": true
             }        
 
@@ -24,98 +45,8 @@
     + Body
 
             {
-                "uuid": "752b007e-4ded-4cd0-b27a-afb86872e5c2",
+                "uuid": "2542c34e-4db9-42e7-92e2-d10e00c4645a",
                 "is_approved": true
             }        
 
-
-
-## /approval/{id}
-
-+ Parameters
-    + id: `ff45cc47-9b19-4e1b-b2c0-a5a971540ea1` (string)
-
-### GET [GET]
-
-
-+ Response 200 (application/json)
-
-
-
-    + Body
-
-            {
-                "id": 1,
-                "uuid": "ff45cc47-9b19-4e1b-b2c0-a5a971540ea1",
-                "pr_id": 555,
-                "sha": "038d718da6a1ebbc6a7780a96ed75a70cc2ad6e2",
-                "is_approved": false,
-                "last_updated": "0001-01-01T00:00:00Z"
-            }        
-
-
-
-## /approval{?id}
-
-+ Parameters
-    + id: `ff45cc47-9b19-4e1b-b2c0-a5a971540ea1` (string)
-
-### GET [GET]
-
-
-+ Response 200 (application/json)
-
-
-
-    + Body
-
-            {
-                "id": 1,
-                "uuid": "ff45cc47-9b19-4e1b-b2c0-a5a971540ea1",
-                "pr_id": 555,
-                "sha": "038d718da6a1ebbc6a7780a96ed75a70cc2ad6e2",
-                "is_approved": false,
-                "last_updated": "0001-01-01T00:00:00Z"
-            }        
-
-
-
-## /pull_requests
-
-### GET [GET]
-
-
-+ Response 200 (application/json)
-
-
-
-    + Body
-
-            [
-                {
-                    "id": 1,
-                    "repo_id": 444,
-                    "pr_id": 991,
-                    "pr_number": 1,
-                    "opened_by": 651,
-                    "is_merged": false
-                }
-            ]        
-
-
-
-## /webhook_events
-
-### POST [POST]
-
-
-+ Request (application/json)
-
-
-
-    + Body
-
-            {}        
-
-+ Response 200 
 

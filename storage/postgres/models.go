@@ -23,12 +23,13 @@ type GhUser struct {
 }
 
 type PullRequest struct {
-	ID       int32 `json:"id"`
-	RepoID   int32 `json:"repo_id"`
-	PrID     int32 `json:"pr_id"`
-	PrNumber int32 `json:"pr_number"`
-	OpenedBy int32 `json:"opened_by"`
-	IsMerged bool  `json:"is_merged"`
+	ID             int32 `json:"id"`
+	RepoID         int32 `json:"repo_id"`
+	PrID           int32 `json:"pr_id"`
+	PrNumber       int32 `json:"pr_number"`
+	OpenedBy       int32 `json:"opened_by"`
+	InstallationID int32 `json:"installation_id"`
+	IsMerged       bool  `json:"is_merged"`
 }
 
 type PullRequestAction struct {

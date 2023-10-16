@@ -1,7 +1,7 @@
 -- name: CreatePullRequest :one
-INSERT INTO pull_request(repo_id, pr_id, pr_number, opened_by, is_merged)
+INSERT INTO pull_request(repo_id, pr_id, pr_number, opened_by, installation_id, is_merged)
 VALUES 
-  ($1, $2, $3, $4, $5)
+  ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetPullRequestById :one

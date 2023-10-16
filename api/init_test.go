@@ -1,7 +1,10 @@
 package api
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -20,8 +23,15 @@ var fakeStore *fakes.Querier
 func TestMain(m *testing.M) {
 	var err error
 	fakeStore = &fakes.Querier{}
-	apiServer = getApiServer(fakeStore)
-	apiServer.AddAllRoutes()
+
+	// Generate RSA key.
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	apiServer = getApiServer(fakeStore).WithRoutes().WithPrivateKey(key)
+
 	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.router))
 
 	// Requests to this http server will show up in the api blueprint document.
@@ -36,13 +46,24 @@ func TestMain(m *testing.M) {
 }
 
 func getApiServer(querier *fakes.Querier) *Server {
-	return &Server{
+	// Generate RSA key.
+	key, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	server := &Server{
 		querier:                 querier,
 		githubWebhookSecret:     "0123456789abcdef",
 		jsonMarshal:             json.Marshal,
 		router:                  mux.NewRouter(),
 		KnownPullRequestActions: map[string]struct{}{},
+		githubPrivateKey:        key,
 	}
+
+	server.githubFactory = NewMockGithubClientFactory(apiServer)
+
+	return server
 }
 
 func getQuerierServer() (*fakes.Querier, *Server) {
@@ -81,7 +102,12 @@ func makeHttpRequest(t *testing.T, expectedStatusCode int, httpRequestFunc func(
 	}
 
 	if resp.StatusCode != expectedStatusCode {
-		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v)", resp.StatusCode, expectedStatusCode)
+		f, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("expected 'err' (%v) be nil", err)
+		}
+		resp.Body.Close()
+		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v)\n%v", resp.StatusCode, expectedStatusCode, string(f))
 	}
 
 	return resp

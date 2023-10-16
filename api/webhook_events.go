@@ -82,6 +82,7 @@ func (server *Server) processPullRequestEvent(ctx context.Context, event *github
 
 		log.Printf("Creating a commit status for pull request %s/%d created by %s", repo.Name, pr.PrNumber, ghUser.Login)
 
+		log.Printf("event.GetInstallation().GetID() %v", event.GetInstallation().GetID())
 		client, err := server.githubFactory.NewInstallationClient(ctx, event.GetInstallation().GetID())
 		if err != nil {
 			return fmt.Errorf("github client error %v", err)
@@ -96,21 +97,15 @@ func (server *Server) processPullRequestEvent(ctx context.Context, event *github
 			State: github.String("error"), // "error" or "failure" show up as a red X
 		}
 
-		log.Println("got this far")
 		_, _, err = client.Repositories.CreateStatus(
 			ctx, createParams.GithubUser.Login, createParams.Repo.Name, createParams.PullRequestEvent.Sha, failedStatus,
 		)
-
 		if err != nil {
 			return err
 		}
 
 		log.Printf("created repo status (check) for pull request %s/%d", repo.Name, pr.PrNumber)
 
-		// case "closed":
-		// 	log.Printf("Pull request %s/%d created by %s has been closed.", repoName, prNum, owner)
-		// 	// TODO: Add the event to an activity table with the status of whether it was merged or not. This allows for multiple closed/reopened events.
-		// 	// See: https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#check-if-a-pull-request-has-been-merged
 	}
 	return nil
 }
@@ -136,10 +131,11 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 			ID:   int32(event.Repo.GetID()),
 		},
 		PullRequest: postgres.CreatePullRequestParams{
-			RepoID:   int32(event.Repo.GetID()),
-			PrID:     int32(event.PullRequest.GetID()),
-			PrNumber: int32(event.PullRequest.GetNumber()),
-			OpenedBy: int32(*event.GetSender().ID),
+			RepoID:         int32(event.Repo.GetID()),
+			PrID:           int32(event.PullRequest.GetID()),
+			PrNumber:       int32(event.PullRequest.GetNumber()),
+			OpenedBy:       int32(*event.GetSender().ID),
+			InstallationID: int32(event.GetInstallation().GetID()),
 		},
 		PullRequestEvent: postgres.CreatePullRequestEventParams{
 			PrID:     int32(event.PullRequest.GetID()),

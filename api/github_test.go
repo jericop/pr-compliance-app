@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-github/v53/github"
 	"github.com/jericop/pr-compliance-app/fakes"
+
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 )
 
@@ -75,12 +76,17 @@ func TestValidatWebhookRequest(t *testing.T) {
 }
 
 type mockGithubFactory struct {
-	server                 *Server
-	validateWebhookReturns struct {
+	defaultClient                 *http.Client
+	server                        *Server
+	ValidateWebhookRequestReturns struct {
 		event interface{}
 		err   error
 	}
-	newInstallationClientReturns struct {
+	NewAppClientReturns struct {
+		httpClient *http.Client
+		err        error
+	}
+	NewInstallationClientReturns struct {
 		httpClient *http.Client
 		err        error
 	}
@@ -90,9 +96,17 @@ func NewMockGithubClientFactory(server *Server) *mockGithubFactory {
 	factory := &mockGithubFactory{server: server}
 
 	// default mocks for factory
-	factory.newInstallationClientReturns.httpClient = mock.NewMockedHTTPClient(
+	factory.defaultClient = mock.NewMockedHTTPClient(
 		mock.WithRequestMatch(
 			mock.PostReposStatusesByOwnerByRepoBySha,
+			// Multiple return responses supported (and required for some tests)
+			// Adding additional responses fixes: http: panic serving 127.0.0.1:59729: runtime error: index out of range [1] with length 1
+			github.RepoStatus{
+				ID: github.Int64(int64(333)),
+			},
+			github.RepoStatus{
+				ID: github.Int64(int64(333)),
+			},
 			github.RepoStatus{
 				ID: github.Int64(int64(333)),
 			},
@@ -105,25 +119,38 @@ func NewMockGithubClientFactory(server *Server) *mockGithubFactory {
 		),
 	)
 
+	factory.NewAppClientReturns.httpClient = factory.defaultClient
+	factory.NewInstallationClientReturns.httpClient = factory.defaultClient
+
 	return factory
 }
 
-func (f *mockGithubFactory) WithValidateWebhookReturns(event interface{}, err error) *mockGithubFactory {
-	f.validateWebhookReturns.event = event
-	f.validateWebhookReturns.err = err
+func (f *mockGithubFactory) WithValidateWebhookRequestReturns(event interface{}, err error) *mockGithubFactory {
+	f.ValidateWebhookRequestReturns.event = event
+	f.ValidateWebhookRequestReturns.err = err
+	return f
+}
+
+func (f *mockGithubFactory) WithNewAppClientReturns(client *http.Client, err error) *mockGithubFactory {
+	f.NewAppClientReturns.httpClient = client
+	f.NewAppClientReturns.err = err
 	return f
 }
 
 func (f *mockGithubFactory) WithNewInstallationClientReturns(client *http.Client, err error) *mockGithubFactory {
-	f.newInstallationClientReturns.httpClient = client
-	f.newInstallationClientReturns.err = err
+	f.NewInstallationClientReturns.httpClient = client
+	f.NewInstallationClientReturns.err = err
 	return f
 }
 
 func (f *mockGithubFactory) ValidatWebhookRequest(r *http.Request) (interface{}, error) {
-	return f.validateWebhookReturns.event, f.validateWebhookReturns.err
+	return f.ValidateWebhookRequestReturns.event, f.ValidateWebhookRequestReturns.err
 }
 
 func (f *mockGithubFactory) NewInstallationClient(ctx context.Context, installationID int64) (*github.Client, error) {
-	return github.NewClient(f.newInstallationClientReturns.httpClient), f.newInstallationClientReturns.err
+	return github.NewClient(f.NewInstallationClientReturns.httpClient), f.NewInstallationClientReturns.err
+}
+
+func (f *mockGithubFactory) NewAppClient(ctx context.Context) (*github.Client, error) {
+	return github.NewClient(f.NewAppClientReturns.httpClient), f.NewAppClientReturns.err
 }

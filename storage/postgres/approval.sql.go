@@ -145,6 +145,31 @@ func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
 	return items, nil
 }
 
+const getCreateStatusInputsFromApprovalUuid = `-- name: GetCreateStatusInputsFromApprovalUuid :one
+SELECT p.installation_id, u.login, r.name, a.sha
+FROM approval a, pull_request p, repo r, gh_user u
+WHERE a.uuid = $1 AND a.pr_id = p.pr_id AND p.opened_by = u.id AND p.repo_id = r.id
+`
+
+type GetCreateStatusInputsFromApprovalUuidRow struct {
+	InstallationID int32  `json:"installation_id"`
+	Login          string `json:"login"`
+	Name           string `json:"name"`
+	Sha            string `json:"sha"`
+}
+
+func (q *Queries) GetCreateStatusInputsFromApprovalUuid(ctx context.Context, uuid string) (GetCreateStatusInputsFromApprovalUuidRow, error) {
+	row := q.db.QueryRow(ctx, getCreateStatusInputsFromApprovalUuid, uuid)
+	var i GetCreateStatusInputsFromApprovalUuidRow
+	err := row.Scan(
+		&i.InstallationID,
+		&i.Login,
+		&i.Name,
+		&i.Sha,
+	)
+	return i, err
+}
+
 const updateApprovalByUuid = `-- name: UpdateApprovalByUuid :exec
 UPDATE approval SET is_approved = $2
 WHERE uuid = $1

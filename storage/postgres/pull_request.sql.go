@@ -10,18 +10,19 @@ import (
 )
 
 const createPullRequest = `-- name: CreatePullRequest :one
-INSERT INTO pull_request(repo_id, pr_id, pr_number, opened_by, is_merged)
+INSERT INTO pull_request(repo_id, pr_id, pr_number, opened_by, installation_id, is_merged)
 VALUES 
-  ($1, $2, $3, $4, $5)
-RETURNING id, repo_id, pr_id, pr_number, opened_by, is_merged
+  ($1, $2, $3, $4, $5, $6)
+RETURNING id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged
 `
 
 type CreatePullRequestParams struct {
-	RepoID   int32 `json:"repo_id"`
-	PrID     int32 `json:"pr_id"`
-	PrNumber int32 `json:"pr_number"`
-	OpenedBy int32 `json:"opened_by"`
-	IsMerged bool  `json:"is_merged"`
+	RepoID         int32 `json:"repo_id"`
+	PrID           int32 `json:"pr_id"`
+	PrNumber       int32 `json:"pr_number"`
+	OpenedBy       int32 `json:"opened_by"`
+	InstallationID int32 `json:"installation_id"`
+	IsMerged       bool  `json:"is_merged"`
 }
 
 func (q *Queries) CreatePullRequest(ctx context.Context, arg CreatePullRequestParams) (PullRequest, error) {
@@ -30,6 +31,7 @@ func (q *Queries) CreatePullRequest(ctx context.Context, arg CreatePullRequestPa
 		arg.PrID,
 		arg.PrNumber,
 		arg.OpenedBy,
+		arg.InstallationID,
 		arg.IsMerged,
 	)
 	var i PullRequest
@@ -39,6 +41,7 @@ func (q *Queries) CreatePullRequest(ctx context.Context, arg CreatePullRequestPa
 		&i.PrID,
 		&i.PrNumber,
 		&i.OpenedBy,
+		&i.InstallationID,
 		&i.IsMerged,
 	)
 	return i, err
@@ -55,7 +58,7 @@ func (q *Queries) DeletePullRequest(ctx context.Context, id int32) error {
 }
 
 const getPullRequestById = `-- name: GetPullRequestById :one
-SELECT id, repo_id, pr_id, pr_number, opened_by, is_merged FROM pull_request
+SELECT id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged FROM pull_request
 WHERE id = $1 LIMIT 1
 `
 
@@ -68,13 +71,14 @@ func (q *Queries) GetPullRequestById(ctx context.Context, id int32) (PullRequest
 		&i.PrID,
 		&i.PrNumber,
 		&i.OpenedBy,
+		&i.InstallationID,
 		&i.IsMerged,
 	)
 	return i, err
 }
 
 const getPullRequestByRepoIdPrId = `-- name: GetPullRequestByRepoIdPrId :one
-SELECT id, repo_id, pr_id, pr_number, opened_by, is_merged FROM pull_request
+SELECT id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged FROM pull_request
 WHERE repo_id = $1 AND pr_id = $2 LIMIT 1
 `
 
@@ -92,13 +96,14 @@ func (q *Queries) GetPullRequestByRepoIdPrId(ctx context.Context, arg GetPullReq
 		&i.PrID,
 		&i.PrNumber,
 		&i.OpenedBy,
+		&i.InstallationID,
 		&i.IsMerged,
 	)
 	return i, err
 }
 
 const getPullRequestForUpdate = `-- name: GetPullRequestForUpdate :one
-SELECT id, repo_id, pr_id, pr_number, opened_by, is_merged FROM pull_request
+SELECT id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged FROM pull_request
 WHERE id = $1 LIMIT 1
 FOR NO KEY UPDATE
 `
@@ -112,13 +117,14 @@ func (q *Queries) GetPullRequestForUpdate(ctx context.Context, id int32) (PullRe
 		&i.PrID,
 		&i.PrNumber,
 		&i.OpenedBy,
+		&i.InstallationID,
 		&i.IsMerged,
 	)
 	return i, err
 }
 
 const getPullRequests = `-- name: GetPullRequests :many
-SELECT id, repo_id, pr_id, pr_number, opened_by, is_merged FROM pull_request
+SELECT id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged FROM pull_request
 `
 
 func (q *Queries) GetPullRequests(ctx context.Context) ([]PullRequest, error) {
@@ -136,6 +142,7 @@ func (q *Queries) GetPullRequests(ctx context.Context) ([]PullRequest, error) {
 			&i.PrID,
 			&i.PrNumber,
 			&i.OpenedBy,
+			&i.InstallationID,
 			&i.IsMerged,
 		); err != nil {
 			return nil, err
@@ -152,7 +159,7 @@ const updatePullRequestIsMerged = `-- name: UpdatePullRequestIsMerged :one
 UPDATE pull_request
 SET is_merged = $2
 WHERE id = $1
-RETURNING id, repo_id, pr_id, pr_number, opened_by, is_merged
+RETURNING id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged
 `
 
 type UpdatePullRequestIsMergedParams struct {
@@ -169,6 +176,7 @@ func (q *Queries) UpdatePullRequestIsMerged(ctx context.Context, arg UpdatePullR
 		&i.PrID,
 		&i.PrNumber,
 		&i.OpenedBy,
+		&i.InstallationID,
 		&i.IsMerged,
 	)
 	return i, err
