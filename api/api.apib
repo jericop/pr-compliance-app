@@ -1,2 +1,52 @@
 
 # Group Api
+
+## /pull_requests
+
+### GET [GET]
+
+
++ Response 200 (application/json)
+
+
+
+    + Body
+
+            [
+                {
+                    "id": 1,
+                    "repo_id": 444,
+                    "pr_id": 991,
+                    "pr_number": 1,
+                    "opened_by": 651,
+                    "is_merged": false
+                }
+            ]        
+
+
+
++ Response 500 (text/plain; charset=utf-8)
+
+    + Headers
+            
+            X-Content-Type-Options: nosniff
+
+    + Body
+
+            db error
+        
+
+
+
++ Response 500 (text/plain; charset=utf-8)
+
+    + Headers
+            
+            X-Content-Type-Options: nosniff
+
+    + Body
+
+            Marshalling failed
+        
+
+

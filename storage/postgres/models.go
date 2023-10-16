@@ -5,15 +5,15 @@
 package postgres
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 type Approval struct {
-	ID         int32            `json:"id"`
-	Uuid       string           `json:"uuid"`
-	PrID       pgtype.Int4      `json:"pr_id"`
-	Sha        string           `json:"sha"`
-	ApprovedOn pgtype.Timestamp `json:"approved_on"`
+	ID         int32     `json:"id"`
+	Uuid       string    `json:"uuid"`
+	PrID       int32     `json:"pr_id"`
+	Sha        string    `json:"sha"`
+	ApprovedOn time.Time `json:"approved_on"`
 }
 
 type GhUser struct {
@@ -22,12 +22,12 @@ type GhUser struct {
 }
 
 type PullRequest struct {
-	ID       int32       `json:"id"`
-	RepoID   pgtype.Int4 `json:"repo_id"`
-	PrID     int32       `json:"pr_id"`
-	PrNumber int32       `json:"pr_number"`
-	OpenedBy pgtype.Int4 `json:"opened_by"`
-	IsMerged pgtype.Bool `json:"is_merged"`
+	ID       int32 `json:"id"`
+	RepoID   int32 `json:"repo_id"`
+	PrID     int32 `json:"pr_id"`
+	PrNumber int32 `json:"pr_number"`
+	OpenedBy int32 `json:"opened_by"`
+	IsMerged bool  `json:"is_merged"`
 }
 
 type PullRequestAction struct {
@@ -35,12 +35,12 @@ type PullRequestAction struct {
 }
 
 type PullRequestEvent struct {
-	ID          int32            `json:"id"`
-	PrID        pgtype.Int4      `json:"pr_id"`
-	Action      pgtype.Text      `json:"action"`
-	Sha         pgtype.Text      `json:"sha"`
-	IsMerged    pgtype.Bool      `json:"is_merged"`
-	LastUpdated pgtype.Timestamp `json:"last_updated"`
+	ID          int32     `json:"id"`
+	PrID        int32     `json:"pr_id"`
+	Action      string    `json:"action"`
+	Sha         string    `json:"sha"`
+	IsMerged    bool      `json:"is_merged"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 type Repo struct {

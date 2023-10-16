@@ -41,22 +41,23 @@ func (server *Server) AddPullRequestRoutes() {
 
 // GetPullRequests retrieves the collection of PullRequests
 func (server *Server) GetPullRequests(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("GetPullRequests")
-	pull_requests, err := server.store.GetPullRequests(context.Background())
-	fmt.Printf("pull_requests: %v\n", pull_requests)
-	fmt.Printf("pull_requests err: %v\n", err)
-
-	pull_requestsJSON, err := json.Marshal(pull_requests)
+	pullRequests, err := server.store.GetPullRequests(context.Background())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Printf("pull_requestsJSON: %v\n", pull_requestsJSON)
+	pullRequestsJSON, err := server.jsonMarshal(pullRequests)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("pullRequestsJSON: %v\n", pullRequestsJSON)
 
 	w.Header().Set("Content-Type", "application/json")
 
-	fmt.Fprintf(w, string(pull_requestsJSON))
+	fmt.Fprintf(w, string(pullRequestsJSON))
 }
 
 // GetPullRequest retrieves a single PullRequest

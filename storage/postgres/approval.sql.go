@@ -7,8 +7,7 @@ package postgres
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 const createApproval = `-- name: CreateApproval :one
@@ -19,10 +18,10 @@ RETURNING id, uuid, pr_id, sha, approved_on
 `
 
 type CreateApprovalParams struct {
-	Uuid       string           `json:"uuid"`
-	PrID       pgtype.Int4      `json:"pr_id"`
-	Sha        string           `json:"sha"`
-	ApprovedOn pgtype.Timestamp `json:"approved_on"`
+	Uuid       string    `json:"uuid"`
+	PrID       int32     `json:"pr_id"`
+	Sha        string    `json:"sha"`
+	ApprovedOn time.Time `json:"approved_on"`
 }
 
 func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) (Approval, error) {

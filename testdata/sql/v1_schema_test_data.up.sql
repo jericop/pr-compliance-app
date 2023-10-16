@@ -25,11 +25,11 @@ VALUES
   ('synchronize')
 ;
 
-INSERT INTO pull_request (pr_id, pr_number, repo_id, is_merged)
+INSERT INTO pull_request (pr_id, pr_number, repo_id, is_merged, opened_by)
 VALUES
-    (991, 1, 1, 'false'),
-    (992, 2, 1, 'false'),
-    (993, 1, 2, 'true') -- already merged
+    (991, 1, 1, 'false', 1),
+    (992, 2, 1, 'false', 2),
+    (993, 1, 2, 'true', 3) -- already merged
 ;
 
 INSERT INTO pull_request_event (pr_id, action, sha, is_merged)

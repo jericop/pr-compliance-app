@@ -28,8 +28,8 @@ func main() {
 	// Create a new server with routes configured
 	server := api.NewServer(db)
 
-	// This is just a wrapper that calls http.ListenAndServe
-	server.Start(":8080")
+	// This is a wrapper that calls http.ListenAndServe, which is a blocking call.
+	log.Fatal(server.Start(":8080"))
 }
 
 /*

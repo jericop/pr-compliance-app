@@ -7,8 +7,7 @@ package postgres
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 const createPullRequestEvent = `-- name: CreatePullRequestEvent :one
@@ -19,11 +18,11 @@ RETURNING id, pr_id, action, sha, is_merged, last_updated
 `
 
 type CreatePullRequestEventParams struct {
-	PrID        pgtype.Int4      `json:"pr_id"`
-	Action      pgtype.Text      `json:"action"`
-	Sha         pgtype.Text      `json:"sha"`
-	IsMerged    pgtype.Bool      `json:"is_merged"`
-	LastUpdated pgtype.Timestamp `json:"last_updated"`
+	PrID        int32     `json:"pr_id"`
+	Action      string    `json:"action"`
+	Sha         string    `json:"sha"`
+	IsMerged    bool      `json:"is_merged"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 func (q *Queries) CreatePullRequestEvent(ctx context.Context, arg CreatePullRequestEventParams) (PullRequestEvent, error) {

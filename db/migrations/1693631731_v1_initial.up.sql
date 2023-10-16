@@ -1,5 +1,4 @@
--- TODO: remove this after testing as migrations should run as a specific user and connect to a specific database
--- \connect pr_compliance
+-- NOT NULL is used frequently to ensure that sqlc generates native go types rather than nullable pg types
 
 CREATE TABLE IF NOT EXISTS repo (
   id INT NOT NULL,
@@ -19,11 +18,11 @@ CREATE TABLE IF NOT EXISTS gh_user (
 
 CREATE TABLE IF NOT EXISTS pull_request (
   id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  repo_id INT,
+  repo_id INT NOT NULL,
   pr_id INT NOT NULL,
   pr_number INT NOT NULL,
-  opened_by INT,
-  is_merged BOOLEAN DEFAULT false,
+  opened_by INT NOT NULL ,
+  is_merged BOOLEAN NOT NULL DEFAULT false,
   
   UNIQUE(pr_id),
   UNIQUE(repo_id, pr_number),
@@ -39,10 +38,10 @@ CREATE TABLE IF NOT EXISTS pull_request_action (
 
 CREATE TABLE IF NOT EXISTS pull_request_event (
   id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  pr_id INT,
-  action VARCHAR(128),
-  sha VARCHAR(40),
-  is_merged BOOLEAN DEFAULT false,
+  pr_id INT NOT NULL,
+  action VARCHAR(128) NOT NULL,
+  sha VARCHAR(40) NOT NULL,
+  is_merged BOOLEAN NOT NULL DEFAULT false,
   last_updated TIMESTAMP NOT NULL DEFAULT NOW(),
   
   CONSTRAINT FK_pull_request_event_pull_request FOREIGN KEY (pr_id) REFERENCES pull_request(pr_id),
@@ -52,7 +51,7 @@ CREATE TABLE IF NOT EXISTS pull_request_event (
 CREATE TABLE IF NOT EXISTS approval (
   id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   uuid VARCHAR(36) NOT NULL,
-  pr_id INT,
+  pr_id INT NOT NULL,
   sha VARCHAR(40) NOT NULL,
   approved_on TIMESTAMP NOT NULL DEFAULT NOW(),
 

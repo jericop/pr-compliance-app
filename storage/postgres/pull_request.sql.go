@@ -7,8 +7,6 @@ package postgres
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPullRequest = `-- name: CreatePullRequest :one
@@ -19,11 +17,11 @@ RETURNING id, repo_id, pr_id, pr_number, opened_by, is_merged
 `
 
 type CreatePullRequestParams struct {
-	RepoID   pgtype.Int4 `json:"repo_id"`
-	PrID     int32       `json:"pr_id"`
-	PrNumber int32       `json:"pr_number"`
-	OpenedBy pgtype.Int4 `json:"opened_by"`
-	IsMerged pgtype.Bool `json:"is_merged"`
+	RepoID   int32 `json:"repo_id"`
+	PrID     int32 `json:"pr_id"`
+	PrNumber int32 `json:"pr_number"`
+	OpenedBy int32 `json:"opened_by"`
+	IsMerged bool  `json:"is_merged"`
 }
 
 func (q *Queries) CreatePullRequest(ctx context.Context, arg CreatePullRequestParams) (PullRequest, error) {
@@ -134,8 +132,8 @@ RETURNING id, repo_id, pr_id, pr_number, opened_by, is_merged
 `
 
 type UpdatePullRequestIsMergedParams struct {
-	ID       int32       `json:"id"`
-	IsMerged pgtype.Bool `json:"is_merged"`
+	ID       int32 `json:"id"`
+	IsMerged bool  `json:"is_merged"`
 }
 
 func (q *Queries) UpdatePullRequestIsMerged(ctx context.Context, arg UpdatePullRequestIsMergedParams) (PullRequest, error) {

@@ -13,15 +13,18 @@ import (
 
 var router *mux.Router
 var server *test.Server
+var apiServer *Server
+var fakeStore *fakes.Querier
 
 func TestMain(m *testing.M) {
 	var err error
 
-	db := &fakes.Querier{}
-	apiServer := NewServer(db)
-	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.router))
+	fakeStore = &fakes.Querier{}
+	apiServer = NewServer(fakeStore)
+	router = apiServer.router
+	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(router))
 
-	server, err = test.NewServer(apiServer.router)
+	server, err = test.NewServer(router)
 	if err != nil {
 		panic(err.Error())
 	}
