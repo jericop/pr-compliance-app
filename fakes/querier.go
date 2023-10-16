@@ -373,6 +373,18 @@ type Querier struct {
 		}
 		Stub func(context.Context) ([]postgres.Repo, error)
 	}
+	UpdateApprovalByUuidCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.UpdateApprovalByUuidParams
+		}
+		Returns struct {
+			Error error
+		}
+		Stub func(context.Context, postgres.UpdateApprovalByUuidParams) error
+	}
 	UpdatePullRequestIsMergedCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -726,6 +738,17 @@ func (f *Querier) GetRepos(param1 context.Context) ([]postgres.Repo, error) {
 		return f.GetReposCall.Stub(param1)
 	}
 	return f.GetReposCall.Returns.RepoSlice, f.GetReposCall.Returns.Error
+}
+func (f *Querier) UpdateApprovalByUuid(param1 context.Context, param2 postgres.UpdateApprovalByUuidParams) error {
+	f.UpdateApprovalByUuidCall.mutex.Lock()
+	defer f.UpdateApprovalByUuidCall.mutex.Unlock()
+	f.UpdateApprovalByUuidCall.CallCount++
+	f.UpdateApprovalByUuidCall.Receives.Ctx = param1
+	f.UpdateApprovalByUuidCall.Receives.Arg = param2
+	if f.UpdateApprovalByUuidCall.Stub != nil {
+		return f.UpdateApprovalByUuidCall.Stub(param1, param2)
+	}
+	return f.UpdateApprovalByUuidCall.Returns.Error
 }
 func (f *Querier) UpdatePullRequestIsMerged(param1 context.Context, param2 postgres.UpdatePullRequestIsMergedParams) (postgres.PullRequest, error) {
 	f.UpdatePullRequestIsMergedCall.mutex.Lock()

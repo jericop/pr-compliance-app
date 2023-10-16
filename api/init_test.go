@@ -22,10 +22,10 @@ func TestMain(m *testing.M) {
 	fakeStore = &fakes.Querier{}
 	apiServer = getApiServer(fakeStore)
 	apiServer.AddAllRoutes()
-	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.Router))
+	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.router))
 
 	// Requests to this http server will show up in the api blueprint document.
-	test2docServer, err = test.NewServer(apiServer.Router)
+	test2docServer, err = test.NewServer(apiServer.router)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -40,29 +40,29 @@ func getApiServer(querier *fakes.Querier) *Server {
 		querier:             querier,
 		githubWebhookSecret: "0123456789abcdef",
 		jsonMarshal:         json.Marshal,
-		Router:              mux.NewRouter(),
+		router:              mux.NewRouter(),
 	}
 }
 
 func getQuerierServer() (*fakes.Querier, *Server) {
-	store := &fakes.Querier{}
-	apiServer := getApiServer(store)
-	return store, apiServer
+	querier := &fakes.Querier{}
+	apiServer := getApiServer(querier)
+	return querier, apiServer
 }
 
 func getQuerierServerWithRoutes() (*fakes.Querier, *Server) {
-	store, apiServer := getQuerierServer()
+	querier, apiServer := getQuerierServer()
 	apiServer.AddAllRoutes()
-	return store, apiServer
+	return querier, apiServer
 }
 
 func getQuerierServerRouteUrl(t *testing.T, routeName string) (*fakes.Querier, *Server, string) {
-	store, apiServer := getQuerierServerWithRoutes()
-	urlPath, err := apiServer.Router.Get(routeName).URL()
+	querier, apiServer := getQuerierServerWithRoutes()
+	urlPath, err := apiServer.router.Get(routeName).URL()
 	if err != nil {
 		t.Fatalf("expected 'err' (%v) be nil", err)
 	}
-	return store, apiServer, urlPath.String()
+	return querier, apiServer, urlPath.String()
 }
 
 func getRouteUrlPath(t *testing.T, router *mux.Router, routeName string) string {

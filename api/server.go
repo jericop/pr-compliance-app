@@ -5,7 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"log"
 	"os"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,24 +16,26 @@ import (
 
 // Server serves HTTP requests for the api and uses store to interact with the Querier interface created by sqlc.
 type Server struct {
-	connPool            *pgxpool.Pool
-	querier             postgres.Querier
-	jsonMarshal         func(v any) ([]byte, error)
-	githubAppId         string
-	githubWebhookSecret string
-	githubPrivateKey    *rsa.PrivateKey
-	Router              *mux.Router
+	connPool                *pgxpool.Pool
+	querier                 postgres.Querier
+	jsonMarshal             func(v any) ([]byte, error)
+	githubAppId             string
+	githubWebhookSecret     string
+	githubPrivateKey        *rsa.PrivateKey
+	router                  *mux.Router
+	KnownPullRequestActions map[string]struct{}
 }
 
 // NewServer creates a new HTTP server and sets up routing.
 func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error) {
 	server := &Server{
-		connPool:            connPool,
-		querier:             querier,
-		jsonMarshal:         json.Marshal,
-		githubAppId:         os.Getenv("GITHUB_APP_IDENTIFIER"),
-		githubWebhookSecret: os.Getenv("GITHUB_WEBHOOK_SECRET"),
-		Router:              mux.NewRouter(),
+		connPool:                connPool,
+		querier:                 querier,
+		jsonMarshal:             json.Marshal,
+		githubAppId:             os.Getenv("GITHUB_APP_IDENTIFIER"),
+		githubWebhookSecret:     os.Getenv("GITHUB_WEBHOOK_SECRET"),
+		router:                  mux.NewRouter(),
+		KnownPullRequestActions: make(map[string]struct{}),
 	}
 
 	server.AddAllRoutes()
@@ -45,13 +47,25 @@ func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error
 	}
 	server.githubPrivateKey = parsedPrivateKey
 
+	actions, err := querier.GetPullRequestActions(context.Background())
+	for _, action := range actions {
+		server.KnownPullRequestActions[action] = struct{}{}
+	}
+
+	log.Printf("server.KnownPullRequestActions[%d] %v", len(server.KnownPullRequestActions), server.KnownPullRequestActions)
+
 	return server, nil
+}
+
+func (server *Server) GetRouter() *mux.Router {
+	return server.router
 }
 
 // Add all routes here
 func (server *Server) AddAllRoutes() {
 	server.AddWebhookEventsRoutes()
 	server.AddPullRequestRoutes()
+	server.AddApprovalRoutes()
 }
 
 // ExecTx executes a function within a database transaction
@@ -71,8 +85,4 @@ func (server *Server) execTx(ctx context.Context, fn func(postgres.Querier) erro
 	}
 
 	return tx.Commit(ctx)
-}
-
-func (server *Server) Start(address string) error {
-	return http.ListenAndServe(address, server.Router)
 }

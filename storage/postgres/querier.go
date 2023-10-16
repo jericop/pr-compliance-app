@@ -38,6 +38,7 @@ type Querier interface {
 	GetRepo(ctx context.Context, id int32) (Repo, error)
 	GetRepoForUpdate(ctx context.Context, id int32) (Repo, error)
 	GetRepos(ctx context.Context) ([]Repo, error)
+	UpdateApprovalByUuid(ctx context.Context, arg UpdateApprovalByUuidParams) error
 	UpdatePullRequestIsMerged(ctx context.Context, arg UpdatePullRequestIsMergedParams) (PullRequest, error)
 	UpdateRepoName(ctx context.Context, arg UpdateRepoNameParams) (Repo, error)
 	UpdateRepoOrg(ctx context.Context, arg UpdateRepoOrgParams) (Repo, error)

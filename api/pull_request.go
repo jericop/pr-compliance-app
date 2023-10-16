@@ -7,7 +7,7 @@ import (
 )
 
 func (server *Server) AddPullRequestRoutes() {
-	server.Router.HandleFunc("/pull_requests", server.GetPullRequests).Methods("GET").Name("GetPullRequests")
+	server.router.HandleFunc("/pull_requests", server.GetPullRequests).Methods("GET").Name("GetPullRequests")
 }
 
 // GetPullRequests retrieves the collection of PullRequests

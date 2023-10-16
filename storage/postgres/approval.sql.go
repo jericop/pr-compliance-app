@@ -144,3 +144,18 @@ func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
 	}
 	return items, nil
 }
+
+const updateApprovalByUuid = `-- name: UpdateApprovalByUuid :exec
+UPDATE approval SET is_approved = $2
+WHERE uuid = $1
+`
+
+type UpdateApprovalByUuidParams struct {
+	Uuid       string `json:"uuid"`
+	IsApproved bool   `json:"is_approved"`
+}
+
+func (q *Queries) UpdateApprovalByUuid(ctx context.Context, arg UpdateApprovalByUuidParams) error {
+	_, err := q.db.Exec(ctx, updateApprovalByUuid, arg.Uuid, arg.IsApproved)
+	return err
+}

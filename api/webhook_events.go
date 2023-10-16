@@ -17,7 +17,7 @@ const (
 )
 
 func (server *Server) AddWebhookEventsRoutes() {
-	server.Router.HandleFunc("/webhook_events", server.PostWebhookEvent).Methods("Post").Name("PostWebhookEvent")
+	server.router.HandleFunc("/webhook_events", server.PostWebhookEvent).Methods("Post").Name("PostWebhookEvent")
 }
 
 func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +43,7 @@ func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Installation ID (%T) %v", client, client)
 		err = server.processPullRequestEvent(ctx, client, event)
 		if err != nil {
+			log.Printf("error processing github pull request event %v", err)
 			http.Error(w, fmt.Sprintf("error processing github pull request event %v", err), http.StatusBadRequest)
 			return
 		}
@@ -79,7 +80,7 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 			OpenedBy: int32(*event.GetSender().ID),
 		},
 		PullRequestEvent: postgres.CreatePullRequestEventParams{
-			PrID:     int32(event.Repo.GetID()),
+			PrID:     int32(event.PullRequest.GetID()),
 			Action:   event.GetAction(),
 			Sha:      *event.GetPullRequest().GetHead().SHA,
 			IsMerged: event.PullRequest.GetMerged(),
@@ -90,7 +91,7 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 		},
 		Approval: postgres.CreateApprovalParams{
 			Uuid:       uuid.New().String(),
-			PrID:       int32(event.Repo.GetID()),
+			PrID:       int32(event.PullRequest.GetID()),
 			Sha:        *event.GetPullRequest().GetHead().SHA,
 			IsApproved: false,
 		},
@@ -104,8 +105,6 @@ func (server *Server) processPullRequestEvent(ctx context.Context, client *githu
 
 	switch event.GetAction() {
 	case "opened", "synchronize", "reopened", "closed":
-		// tx, err := server.querier.(*postgres.Queries).
-		// err := server.execTx(ctx, func(postgres.Querier) error {
 		ghUser, err := server.GetOrCreateGithubUser(ctx, createParams.GithubUser)
 		if err != nil {
 			return err
@@ -118,6 +117,10 @@ func (server *Server) processPullRequestEvent(ctx context.Context, client *githu
 
 		pr, err := server.GetOrCreatePullRequest(ctx, createParams.PullRequest)
 		if err != nil {
+			return err
+		}
+
+		if err := server.GetOrCreatePullRequestAction(ctx, event.GetAction()); err != nil {
 			return err
 		}
 
@@ -134,55 +137,24 @@ func (server *Server) processPullRequestEvent(ctx context.Context, client *githu
 		log.Printf("Creating a commit status for pull request %s/%d created by %s", repo.Name, pr.PrNumber, ghUser.Login)
 		log.Printf("approval %v", approval)
 
-		// _, err := server.GetOrCreateGithubUser(ctx, createParams.GithubUser)
-		// if err != nil {
-		// 	log.Printf("Error getting ghUser: %v", err)
-		// 	return
-		// }
+		failedStatus := &github.RepoStatus{
+			// TODO: Get these fields from the database at startup and then use them for all requests
+			Context:     github.String(statusContext),
+			Description: github.String(statusTitle),
+			TargetURL:   github.String(fmt.Sprintf("http://localhost:8080/approval/%s", approval.Uuid)),
+			// TargetURL:   github.String(fmt.Sprintf("https://localhost:8080/approval?id=%s", approval.Uuid)),
+			State: github.String("error"), // "error" or "failure" show up as a red X
+		}
 
-		// repo, err := server.GetOrCreateRepo(ctx, createParams.Repo)
-		// if err != nil {
-		// 	log.Printf("Error getting repo: %v", err)
-		// 	return
-		// }
+		status, response, err := client.Repositories.CreateStatus(
+			ctx, createParams.GithubUser.Login, createParams.Repo.Name, createParams.PullRequestEvent.Sha, failedStatus,
+		)
 
-		// pr, err := server.GetOrCreatePullRequest(ctx, createParams.PullRequest)
-		// if err != nil {
-		// 	log.Printf("Error getting pr: %v", err)
-		// 	return
-		// }
-
-		// prEvent, err := server.querier.CreatePullRequestEvent(ctx, createParams.PullRequestEvent)
-		// if err != nil {
-		// 	log.Printf("Error creating prEvent: %v", err)
-		// }
-
-		// approval, err := server.GetOrCreateApproval(ctx, createParams.Approval)
-		// if err != nil {
-		// 	log.Printf("Error creating prEvent: %v", err)
-		// }
-
-		// log.Printf("Creating a commit status for pull request %s/%d created by %s", repoName, prNum, owner)
-
-		// failedStatus := &github.RepoStatus{
-		// 	// TODO: Get these fields from the database at startup and then use them for all requests
-		// 	Context:     github.String(statusContext),
-		// 	Description: github.String(statusTitle),
-		// 	// TargetURL: github.String("https://github.com"),
-		// 	State: github.String("error"), // "error" or "failure" show up as a red X
-		// }
-
-		// status, response, err := client.Repositories.CreateStatus(ctx, owner, repo.Name, sha, failedStatus)
-
-		// if err == nil {
-		// 	log.Printf("Successfully created commit status for pull request %s/%d", repoName, prNum)
-		// } else {
-		// 	log.Printf("Failed to create commit status for pull request %s/%d", repoName, prNum)
-		// 	log.Printf("status: %v", status)
-		// 	log.Printf("response: %v", response) // You can keep track of rate limit usage from this
-		// 	log.Printf("err: %v", err)
-		// 	return
-		// }
+		if err == nil {
+			log.Printf("Successfully created commit status for pull request %s/%d", repo.Name, pr.PrNumber)
+		} else {
+			return fmt.Errorf("failed to create commit status for pull request %s/%d: status: %v, response: %v, err: %v", repo.Name, pr.PrNumber, status, response, err)
+		}
 
 		// case "closed":
 		// 	log.Printf("Pull request %s/%d created by %s has been closed.", repoName, prNum, owner)
@@ -272,4 +244,28 @@ func (server *Server) GetOrCreateApproval(ctx context.Context, p postgres.Create
 	}
 
 	return approval, nil
+}
+
+func (server *Server) GetOrCreatePullRequestAction(ctx context.Context, name string) error {
+	log.Printf("GetOrCreatePullRequestAction(ctx, %s)", name)
+
+	_, known := server.KnownPullRequestActions[name]
+	if known {
+		log.Printf("known action %s", name)
+		return nil
+	}
+
+	if _, err := server.querier.GetPullRequestAction(ctx, name); err != nil {
+		log.Printf("action '%s' does not exist: %v", name, err)
+		log.Printf("Creating pull request (event) action %s", name)
+
+		_, err = server.querier.CreatePullRequestAction(ctx, name)
+		if err != nil {
+			log.Printf("Error creating pull_request_action %s: %v", name, err)
+			return err
+		}
+		server.KnownPullRequestActions[name] = struct{}{}
+	}
+
+	return nil
 }

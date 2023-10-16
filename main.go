@@ -28,7 +28,7 @@ func main() {
 		log.Fatalf("Error setting up server: %v\n", err)
 	}
 
-	http.ListenAndServe(":8080", apiServer.Router)
+	http.ListenAndServe(":8080", apiServer.GetRouter())
 }
 
 /*

@@ -14,10 +14,10 @@ import (
 var validPullRequests []postgres.PullRequest
 
 func TestGetPullRequests(t *testing.T) {
-	urlPath := getRouteUrlPath(t, apiServer.Router, "GetPullRequests")
+	urlPath := getRouteUrlPath(t, apiServer.router, "GetPullRequests")
 
 	// Requests to this http server will not show up in the api blueprint document.
-	server := httptest.NewServer(apiServer.Router)
+	server := httptest.NewServer(apiServer.router)
 	defer server.Close()
 
 	t.Run("StatusOK test2doc", func(t *testing.T) {

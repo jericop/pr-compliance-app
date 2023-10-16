@@ -12,6 +12,10 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM approval
 WHERE uuid = $1 LIMIT 1;
 
+-- name: UpdateApprovalByUuid :exec
+UPDATE approval SET is_approved = $2
+WHERE uuid = $1;
+
 -- name: GetApprovalByPrIDSha :one
 SELECT * FROM approval
 WHERE pr_id = $1 AND sha = $2 LIMIT 1;
