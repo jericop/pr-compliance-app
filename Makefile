@@ -59,10 +59,6 @@ test: ## Run tests
 test-all: ## Run tests including integration
 	@go test  $(PKG)
 
-.PHONY: release
-release: ## Create packages for a release
-	make release
-
 .PHONY: test-coverage
 test-coverage: ## Show test coverage
 	@mkdir -p .cover

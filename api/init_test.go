@@ -18,11 +18,11 @@ import (
 
 var test2docServer *test.Server
 var apiServer *Server
-var fakeStore *fakes.Querier
+var fakeQuerier *fakes.Querier
 
 func TestMain(m *testing.M) {
 	var err error
-	fakeStore = &fakes.Querier{}
+	fakeQuerier = &fakes.Querier{}
 
 	// Generate RSA key.
 	key, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 		panic(err.Error())
 	}
 
-	apiServer = getApiServer(fakeStore).WithRoutes().WithPrivateKey(key)
+	apiServer = getApiServer(fakeQuerier).WithRoutes().WithPrivateKey(key)
 
 	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.router))
 
@@ -66,27 +66,6 @@ func getApiServer(querier *fakes.Querier) *Server {
 	return server
 }
 
-func getQuerierServer() (*fakes.Querier, *Server) {
-	querier := &fakes.Querier{}
-	apiServer := getApiServer(querier)
-	return querier, apiServer
-}
-
-func getQuerierServerWithRoutes() (*fakes.Querier, *Server) {
-	querier, apiServer := getQuerierServer()
-	apiServer.AddAllRoutes()
-	return querier, apiServer
-}
-
-func getQuerierServerRouteUrl(t *testing.T, routeName string) (*fakes.Querier, *Server, string) {
-	querier, apiServer := getQuerierServerWithRoutes()
-	urlPath, err := apiServer.router.Get(routeName).URL()
-	if err != nil {
-		t.Fatalf("expected 'err' (%v) be nil", err)
-	}
-	return querier, apiServer, urlPath.String()
-}
-
 func getRouteUrlPath(t *testing.T, router *mux.Router, routeName string, pairs ...string) string {
 	urlPath, err := router.Get(routeName).URL(pairs...)
 	if err != nil {
@@ -107,7 +86,7 @@ func makeHttpRequest(t *testing.T, expectedStatusCode int, httpRequestFunc func(
 			t.Fatalf("expected 'err' (%v) be nil", err)
 		}
 		resp.Body.Close()
-		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v)\n%v", resp.StatusCode, expectedStatusCode, string(f))
+		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v) resp.Body:\n%v", resp.StatusCode, expectedStatusCode, string(f))
 	}
 
 	return resp

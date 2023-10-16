@@ -30,20 +30,3 @@ func main() {
 
 	http.ListenAndServe(":8080", apiServer.GetRouter())
 }
-
-/*
-package main
-
-import (
-	"fmt"
-
-	"github.com/google/uuid"
-	// "github.com/jericop/pr-compliance-app/api"
-)
-
-func main() {
-	// api.HelloWorld()
-	fmt.Println("uuid.New().String()")
-	fmt.Println(uuid.New().String())
-}
-*/

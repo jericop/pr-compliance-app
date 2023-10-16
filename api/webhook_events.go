@@ -82,7 +82,6 @@ func (server *Server) processPullRequestEvent(ctx context.Context, event *github
 
 		log.Printf("Creating a commit status for pull request %s/%d created by %s", repo.Name, pr.PrNumber, ghUser.Login)
 
-		log.Printf("event.GetInstallation().GetID() %v", event.GetInstallation().GetID())
 		client, err := server.githubFactory.NewInstallationClient(ctx, event.GetInstallation().GetID())
 		if err != nil {
 			return fmt.Errorf("github client error %v", err)

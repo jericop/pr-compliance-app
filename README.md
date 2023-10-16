@@ -1,2 +1,2 @@
 # pr-compliance-app
-This GitHub App create a status check on all PR commits that require user input to ensure compliance.
+This GitHub App create a status check on all PRs that require user action before they can be merged.

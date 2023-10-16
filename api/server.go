@@ -69,8 +69,6 @@ func (server *Server) AddAllRoutes() {
 	server.AddHealthRoutes()
 	server.AddWebhookEventsRoutes()
 	server.AddApprovalRoutes()
-	server.AddPullRequestRoutes()
-	server.AddHtmlRoutes()
 }
 
 func (server *Server) WithRoutes() *Server {

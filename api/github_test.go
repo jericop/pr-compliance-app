@@ -116,6 +116,12 @@ func NewMockGithubClientFactory(server *Server) *mockGithubFactory {
 			github.InstallationToken{
 				Token: github.String("something"),
 			},
+			github.InstallationToken{
+				Token: github.String("something"),
+			},
+			github.InstallationToken{
+				Token: github.String("something"),
+			},
 		),
 	)
 

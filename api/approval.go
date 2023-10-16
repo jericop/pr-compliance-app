@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -55,30 +54,19 @@ func (server *Server) getApproval(w http.ResponseWriter, req *http.Request, uuid
 </html>
 	`, "http://localhost:8080/approval", uuid)
 	fmt.Fprintf(w, html)
-
-	// approval, err := server.querier.GetApprovalByUuid(context.Background(), uuid)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// approvalJSON, err := server.jsonMarshal(approval)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// w.Header().Set("Content-Type", "application/json")
-
-	// fmt.Fprintf(w, string(approvalJSON))
 }
 
 func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 	var p postgres.UpdateApprovalByUuidParams
 
-	log.Printf("post approval request content type is %v", req.Header.Get("Content-Type"))
 	if req.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-		req.ParseForm()
+		// untested - hard to force an error because it always seems to returns nil
+		err := req.ParseForm()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		isApproved, err := strconv.ParseBool(req.Form.Get("is_approved"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -89,7 +77,6 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 			Uuid:       req.Form.Get("uuid"),
 			IsApproved: isApproved,
 		}
-		log.Printf("form-created params: %#v", p)
 	} else {
 		decoder := json.NewDecoder(req.Body)
 

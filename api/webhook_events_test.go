@@ -42,7 +42,7 @@ func TestPostWebhookEvent(t *testing.T) {
 
 	urlPath := getRouteUrlPath(t, apiServer.router, "PostWebhookEvent")
 
-	updateQuerierWithSuccessPostWebhookEventReturns(fakeStore)
+	updateQuerierWithSuccessPostWebhookEventReturns(fakeQuerier)
 
 	apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 		WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
@@ -113,8 +113,8 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.GetApprovalByPrIDShaCall.Returns.Error = fmt.Errorf("querier error")
-		fakeStore.CreateApprovalCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.GetApprovalByPrIDShaCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreateApprovalCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -125,7 +125,7 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.CreatePullRequestEventCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreatePullRequestEventCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -136,8 +136,8 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.GetPullRequestByRepoIdPrIdCall.Returns.Error = fmt.Errorf("querier error")
-		fakeStore.CreatePullRequestCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.GetPullRequestByRepoIdPrIdCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreatePullRequestCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -148,8 +148,8 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.GetRepoCall.Returns.Error = fmt.Errorf("querier error")
-		fakeStore.CreateRepoCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.GetRepoCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreateRepoCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -160,8 +160,8 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.GetGithubUserCall.Returns.Error = fmt.Errorf("querier error")
-		fakeStore.CreateGithubUserCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.GetGithubUserCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreateGithubUserCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -172,8 +172,8 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
-		fakeStore.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -184,8 +184,8 @@ func TestPostWebhookEvent(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
 			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
 
-		fakeStore.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
-		fakeStore.CreatePullRequestActionCall.Returns.Error = nil
+		fakeQuerier.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreatePullRequestActionCall.Returns.Error = nil
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
@@ -196,7 +196,7 @@ func TestPostWebhookEvent(t *testing.T) {
 		}
 
 		// If it's not in the map then it will return an error
-		fakeStore.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))

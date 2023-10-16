@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -37,14 +36,13 @@ func TestGetApproval(t *testing.T) {
 		},
 	}
 
-	expected := postgres.Approval{
+	fakeQuerier.GetApprovalByUuidCall.Returns.Approval = postgres.Approval{
 		ID:   1,
 		Uuid: approvalId,
 		PrID: 555,
 		Sha:  "038d718da6a1ebbc6a7780a96ed75a70cc2ad6e2", // echo testing | git hash-object --stdin -w
 	}
-	fakeStore.GetApprovalByUuidCall.Returns.Approval = expected
-	fakeStore.GetApprovalByUuidCall.Returns.Error = nil
+	fakeQuerier.GetApprovalByUuidCall.Returns.Error = nil
 
 	for _, test := range getTests {
 		t.Run(fmt.Sprintf("StatusOK test2doc %s", test.name), func(t *testing.T) {
@@ -88,6 +86,7 @@ func TestUpdateApproval(t *testing.T) {
 		afterFunc      func()
 		url            string
 		wantStatusCode int
+		requestFunc    func() *http.Request
 	}{
 		{
 			name:        "StatusCreated test2doc",
@@ -128,6 +127,20 @@ func TestUpdateApproval(t *testing.T) {
 			url:            server.URL + urlPath,
 		},
 		{
+			name:        "StatusBadRequest ParseForm error",
+			contentType: "application/x-www-form-urlencoded",
+			requestFunc: func() *http.Request {
+				req, err := http.NewRequest("POST", server.URL+urlPath, nil)
+				if err != nil {
+					t.Errorf("got: err = %v, want nil", err)
+				}
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				return req
+			},
+			wantStatusCode: http.StatusBadRequest,
+		},
+		{
 			name:        "StatusBadRequest invalid bool",
 			contentType: "application/x-www-form-urlencoded",
 			ioReader: func() io.Reader {
@@ -143,13 +156,13 @@ func TestUpdateApproval(t *testing.T) {
 			name:        "StatusInternalServerError querier.UpdateApprovalByUuid error",
 			contentType: "application/json",
 			beforeFunc: func() {
-				fakeStore.UpdateApprovalByUuidCall.Returns.Error = fmt.Errorf("db error")
+				fakeQuerier.UpdateApprovalByUuidCall.Returns.Error = fmt.Errorf("db error")
 			},
 			ioReader: func() io.Reader {
 				return bytes.NewBuffer(pJson)
 			},
 			afterFunc: func() {
-				fakeStore.UpdateApprovalByUuidCall.Returns.Error = nil
+				fakeQuerier.UpdateApprovalByUuidCall.Returns.Error = nil
 			},
 			wantStatusCode: http.StatusInternalServerError,
 			url:            server.URL + urlPath,
@@ -158,13 +171,13 @@ func TestUpdateApproval(t *testing.T) {
 			name:        "StatusInternalServerError querier.GetCreateStatusInputsFromApprovalUuid error",
 			contentType: "application/json",
 			beforeFunc: func() {
-				fakeStore.GetCreateStatusInputsFromApprovalUuidCall.Returns.Error = fmt.Errorf("db error")
+				fakeQuerier.GetCreateStatusInputsFromApprovalUuidCall.Returns.Error = fmt.Errorf("db error")
 			},
 			ioReader: func() io.Reader {
 				return bytes.NewBuffer(pJson)
 			},
 			afterFunc: func() {
-				fakeStore.GetCreateStatusInputsFromApprovalUuidCall.Returns.Error = nil
+				fakeQuerier.GetCreateStatusInputsFromApprovalUuidCall.Returns.Error = nil
 			},
 			wantStatusCode: http.StatusInternalServerError,
 			url:            server.URL + urlPath,
@@ -219,8 +232,8 @@ func TestUpdateApproval(t *testing.T) {
 		},
 	}
 
-	fakeStore.GetApprovalByUuidCall.Returns.Error = nil
-	fakeStore.GetCreateStatusInputsFromApprovalUuidCall.Returns.GetCreateStatusInputsFromApprovalUuidRow = postgres.GetCreateStatusInputsFromApprovalUuidRow{
+	fakeQuerier.GetApprovalByUuidCall.Returns.Error = nil
+	fakeQuerier.GetCreateStatusInputsFromApprovalUuidCall.Returns.GetCreateStatusInputsFromApprovalUuidRow = postgres.GetCreateStatusInputsFromApprovalUuidRow{
 		InstallationID: 54321,
 		Login:          "some-user",
 		Name:           "some-repo",                                // the name of the github repo
@@ -232,15 +245,29 @@ func TestUpdateApproval(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v %v", test.name, test.contentType), func(t *testing.T) {
 			if test.beforeFunc != nil {
-				log.Printf("Calling beforeFunc")
 				test.beforeFunc()
 			}
-			makeHttpRequest(t, test.wantStatusCode, func() (resp *http.Response, err error) {
-				return http.Post(test.url, test.contentType, test.ioReader())
-			})
 
+			if test.requestFunc != nil {
+				resp, err := http.DefaultClient.Do(test.requestFunc())
+				if err != nil {
+					t.Fatalf("expected 'err' (%v) be nil", err)
+				}
+
+				if resp.StatusCode != test.wantStatusCode {
+					f, err := io.ReadAll(resp.Body)
+					if err != nil {
+						t.Fatalf("expected 'err' (%v) be nil", err)
+					}
+					resp.Body.Close()
+					t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v) resp.Body:\n%v", resp.StatusCode, test.wantStatusCode, string(f))
+				}
+			} else {
+				makeHttpRequest(t, test.wantStatusCode, func() (resp *http.Response, err error) {
+					return http.Post(test.url, test.contentType, test.ioReader())
+				})
+			}
 			if test.afterFunc != nil {
-				log.Printf("Calling afterFunc")
 				test.afterFunc()
 			}
 		})
