@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -86,7 +87,6 @@ func TestUpdateApproval(t *testing.T) {
 		afterFunc      func()
 		url            string
 		wantStatusCode int
-		requestFunc    func() *http.Request
 	}{
 		{
 			name:        "StatusCreated test2doc",
@@ -126,19 +126,15 @@ func TestUpdateApproval(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 			url:            server.URL + urlPath,
 		},
+
 		{
 			name:        "StatusBadRequest ParseForm error",
 			contentType: "application/x-www-form-urlencoded",
-			requestFunc: func() *http.Request {
-				req, err := http.NewRequest("POST", server.URL+urlPath, nil)
-				if err != nil {
-					t.Errorf("got: err = %v, want nil", err)
-				}
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-				return req
+			ioReader: func() io.Reader {
+				return nil
 			},
 			wantStatusCode: http.StatusBadRequest,
+			url:            server.URL + urlPath,
 		},
 		{
 			name:        "StatusBadRequest invalid bool",
@@ -247,29 +243,19 @@ func TestUpdateApproval(t *testing.T) {
 			if test.beforeFunc != nil {
 				test.beforeFunc()
 			}
+			makeHttpRequest(t, test.wantStatusCode, func() (resp *http.Response, err error) {
+				return http.Post(test.url, test.contentType, test.ioReader())
+			})
 
-			if test.requestFunc != nil {
-				resp, err := http.DefaultClient.Do(test.requestFunc())
-				if err != nil {
-					t.Fatalf("expected 'err' (%v) be nil", err)
-				}
-
-				if resp.StatusCode != test.wantStatusCode {
-					f, err := io.ReadAll(resp.Body)
-					if err != nil {
-						t.Fatalf("expected 'err' (%v) be nil", err)
-					}
-					resp.Body.Close()
-					t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v) resp.Body:\n%v", resp.StatusCode, test.wantStatusCode, string(f))
-				}
-			} else {
-				makeHttpRequest(t, test.wantStatusCode, func() (resp *http.Response, err error) {
-					return http.Post(test.url, test.contentType, test.ioReader())
-				})
-			}
 			if test.afterFunc != nil {
 				test.afterFunc()
 			}
 		})
 	}
+}
+
+type badReader struct{}
+
+func (m *badReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("failure is my middle name")
 }

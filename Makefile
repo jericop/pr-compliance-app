@@ -53,11 +53,11 @@ sqlc-generate:
 
 .PHONY: test
 test: ## Run tests
-	@go test -short $(PKG)
+	@go test -v -short $(PKG)
 
 .PHONY: test-all
 test-all: ## Run tests including integration
-	@go test  $(PKG)
+	@go test -v $(PKG)
 
 .PHONY: test-coverage
 test-coverage: ## Show test coverage

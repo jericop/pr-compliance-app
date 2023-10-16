@@ -1,6 +1,3 @@
--- TODO: remove this after testing as migrations should run as a specific user and connect to a specific database
--- \connect pr_compliance;
-
 INSERT INTO
   repo(org, name, id)
 VALUES
@@ -61,5 +58,6 @@ VALUES
   -- This is an example where the approval was done for the last commit before being merged
   ('a0b3adb0-174c-4be5-984e-3005aeffbf65', 992, 'f2ad6c76f0115a6ba5b00456a849810e7ec0af20', true),
   
-  ('7829491b-9bdc-4167-87e3-73a334fb5916', 993, '4bcfe98e640c8284511312660fb8709b0afa888e', false)
+  -- This was already merged
+  ('7829491b-9bdc-4167-87e3-73a334fb5916', 993, '4bcfe98e640c8284511312660fb8709b0afa888e', true)
 ;

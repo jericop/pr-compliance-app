@@ -59,13 +59,9 @@ func (server *Server) getApproval(w http.ResponseWriter, req *http.Request, uuid
 func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 	var p postgres.UpdateApprovalByUuidParams
 
-	if req.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-		// untested - hard to force an error because it always seems to returns nil
-		err := req.ParseForm()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+	switch req.Header.Get("Content-Type") {
+	case "application/x-www-form-urlencoded":
+		req.ParseForm() // error is ignored because it always returns nil, even with bad input data
 
 		isApproved, err := strconv.ParseBool(req.Form.Get("is_approved"))
 		if err != nil {
@@ -77,7 +73,7 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 			Uuid:       req.Form.Get("uuid"),
 			IsApproved: isApproved,
 		}
-	} else {
+	default: // assume "application/json"
 		decoder := json.NewDecoder(req.Body)
 
 		err := decoder.Decode(&p)

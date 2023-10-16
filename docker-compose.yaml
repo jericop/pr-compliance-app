@@ -12,7 +12,7 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
       - ./db/init/ddl.sql:/docker-entrypoint-initdb.d/101.sql
-      # These migrations will be applied in the postgres database.
+      # These migrations will be applied in the 'postgres' database, but we need them in the 'pr_compliance' database
       - ./db/migrations/1693631731_v1_initial.up.sql:/docker-entrypoint-initdb.d/201.sql
       - ./testdata/sql/v1_schema_test_data.up.sql:/docker-entrypoint-initdb.d/202.sql
       # This script uses psql with the correct database to apply all of the migrations above
