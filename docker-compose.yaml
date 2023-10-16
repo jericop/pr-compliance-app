@@ -1,0 +1,40 @@
+# This will run a database for testing purposes and apply the init sql files to create the database and users.
+
+services:
+  postgres:
+    image: postgres:15.2-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ./db/init/ddl.sql:/docker-entrypoint-initdb.d/101.sql
+      # These migrations will be applied in the postgres database.
+      - ./db/migrations/1693631731_v1_initial.up.sql:/docker-entrypoint-initdb.d/201.sql
+      - ./testdata/v1_schema_test_data.up.sql:/docker-entrypoint-initdb.d/202.sql
+      # This script uses psql with the correct database to apply all of the migrations above
+      - ./testdata/apply-migrations-in-correct-db.sh:/docker-entrypoint-initdb.d/301.run-in-correct-db.sh
+  api:
+    image: pr-compliance-app:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/pr_compliance
+    depends_on:
+      - postgres
+    restart: on-failure
+  ## Troubleshooting services
+  # curl:
+  #   image: curlimages/curl:latest
+  #   tty: true
+  #   command: ["cat", "-"]
+  # ubuntu:
+  #   image: ubuntu:latest
+  #   tty: true
+  #   command: ["cat", "-"]
+volumes:
+  db:
+    driver: local
