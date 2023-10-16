@@ -17,13 +17,10 @@ func (server *Server) AddApprovalRoutes() {
 }
 
 func (server *Server) GetApproval(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("GetApproval()")
 	server.getApproval(w, req, mux.Vars(req)["id"])
 }
 
 func (server *Server) GetApprovalQueryParam(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("GetApprovalQueryParam()")
-
 	uuid := req.URL.Query().Get("id")
 	if uuid == "" {
 		http.Error(w, "query paramter 'id' is needed", http.StatusInternalServerError)
@@ -50,9 +47,7 @@ func (server *Server) getApproval(w http.ResponseWriter, req *http.Request, uuid
 	fmt.Fprintf(w, string(approvalJSON))
 }
 
-// PostWidget adds a Widget to the collection
 func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("UpdateApproval()")
 	var p postgres.UpdateApprovalByUuidParams
 
 	decoder := json.NewDecoder(req.Body)
@@ -64,13 +59,12 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 	}
 
 	err = server.querier.UpdateApprovalByUuid(context.Background(), p)
-	fmt.Printf("UpdateApprovalByUuid(%#v) err: %v", p, err)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	pJSON, err := json.Marshal(p)
+	pJSON, err := server.jsonMarshal(p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

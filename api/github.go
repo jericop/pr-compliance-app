@@ -83,9 +83,21 @@ func newGithubAppInstallationClient(ctx context.Context, appClient *github.Clien
 	return github.NewClient(installationTransport), nil
 }
 
-// Authenticate app and installation
-func (server *Server) getInstallationGitHubClient(ctx context.Context, installationID int64) (*github.Client, error) {
-	appClient, err := server.newGithubAppClient(ctx)
+type githubFactoryInterface interface {
+	NewInstallationClient(context.Context, int64) (*github.Client, error)
+	ValidatWebhookRequest(*http.Request) (interface{}, error)
+}
+
+type githubFactory struct {
+	server *Server
+}
+
+func NewGithubFactory(server *Server) githubFactoryInterface {
+	return &githubFactory{server: server}
+}
+
+func (f *githubFactory) NewInstallationClient(ctx context.Context, installationID int64) (*github.Client, error) {
+	appClient, err := f.server.newGithubAppClient(ctx)
 	if err != nil {
 		return &github.Client{}, err
 	}
@@ -94,4 +106,20 @@ func (server *Server) getInstallationGitHubClient(ctx context.Context, installat
 		return &github.Client{}, err
 	}
 	return appInstallationClient, nil
+}
+
+func (f *githubFactory) ValidatWebhookRequest(r *http.Request) (interface{}, error) {
+	// Validate payload from request using webhook secret
+	payload, err := github.ValidatePayload(r, []byte(f.server.githubWebhookSecret))
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate payload: %v", err)
+	}
+
+	// Parse event from payload
+	event, err := github.ParseWebHook(github.WebHookType(r), payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse webhook into event: %v", err)
+	}
+
+	return event, nil
 }

@@ -18,10 +18,11 @@ import (
 type Server struct {
 	connPool                *pgxpool.Pool
 	querier                 postgres.Querier
-	jsonMarshal             func(v any) ([]byte, error)
+	jsonMarshal             func(v any) ([]byte, error) // Allows json.Marshall to be mocked
 	githubAppId             string
 	githubWebhookSecret     string
 	githubPrivateKey        *rsa.PrivateKey
+	githubFactory           githubFactoryInterface // Allows github operations to be mocked
 	router                  *mux.Router
 	KnownPullRequestActions map[string]struct{}
 }
@@ -37,6 +38,8 @@ func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error
 		router:                  mux.NewRouter(),
 		KnownPullRequestActions: make(map[string]struct{}),
 	}
+
+	server.githubFactory = NewGithubFactory(server)
 
 	server.AddAllRoutes()
 

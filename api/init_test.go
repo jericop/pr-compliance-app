@@ -37,10 +37,11 @@ func TestMain(m *testing.M) {
 
 func getApiServer(querier *fakes.Querier) *Server {
 	return &Server{
-		querier:             querier,
-		githubWebhookSecret: "0123456789abcdef",
-		jsonMarshal:         json.Marshal,
-		router:              mux.NewRouter(),
+		querier:                 querier,
+		githubWebhookSecret:     "0123456789abcdef",
+		jsonMarshal:             json.Marshal,
+		router:                  mux.NewRouter(),
+		KnownPullRequestActions: map[string]struct{}{},
 	}
 }
 
@@ -65,8 +66,8 @@ func getQuerierServerRouteUrl(t *testing.T, routeName string) (*fakes.Querier, *
 	return querier, apiServer, urlPath.String()
 }
 
-func getRouteUrlPath(t *testing.T, router *mux.Router, routeName string) string {
-	urlPath, err := router.Get(routeName).URL()
+func getRouteUrlPath(t *testing.T, router *mux.Router, routeName string, pairs ...string) string {
+	urlPath, err := router.Get(routeName).URL(pairs...)
 	if err != nil {
 		t.Fatalf("expected 'err' (%v) be nil", err)
 	}
@@ -80,7 +81,8 @@ func makeHttpRequest(t *testing.T, expectedStatusCode int, httpRequestFunc func(
 	}
 
 	if resp.StatusCode != expectedStatusCode {
-		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v)", resp.StatusCode, http.StatusOK)
+		t.Fatalf("expected 'resp.StatusCode' (%v) to equal 'expectedStatusCode' (%v)", resp.StatusCode, expectedStatusCode)
 	}
+
 	return resp
 }

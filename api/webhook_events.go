@@ -23,8 +23,10 @@ func (server *Server) AddWebhookEventsRoutes() {
 func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := context.TODO()
 
-	event, err := server.validatWebhookRequest(r)
+	// event, err := server.validatWebhookRequest(r)
+	event, err := server.githubFactory.ValidatWebhookRequest(r)
 	if err != nil {
+		fmt.Printf("validatWebhookRequest err: %v\n", err)
 		http.Error(w, fmt.Sprintf("webhook event validation error %v", err), http.StatusBadRequest)
 		return
 	}
@@ -33,15 +35,15 @@ func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		log.Printf("Handling PullRequestEvent %s for PR %d on repo %s", event.GetAction(), event.GetNumber(), event.GetRepo().GetName())
-		client, err := server.getInstallationGitHubClient(ctx, event.GetInstallation().GetID())
-		if err != nil {
-			http.Error(w, fmt.Sprintf("github client error %v", err), http.StatusBadRequest)
-			return
-		}
-		fmt.Printf("client (%T)", client)
-		fmt.Printf("server.githubAppId (%T) %v", server.githubAppId, server.githubAppId)
-		fmt.Printf("Installation ID (%T) %v", client, client)
-		err = server.processPullRequestEvent(ctx, client, event)
+		// // client, err := server.getInstallationGitHubClient(ctx, event.GetInstallation().GetID())
+		// // if err != nil {
+		// // 	http.Error(w, fmt.Sprintf("github client error %v", err), http.StatusBadRequest)
+		// // 	return
+		// // }
+		// fmt.Printf("client (%T)", client)
+		// fmt.Printf("server.githubAppId (%T) %v", server.githubAppId, server.githubAppId)
+		// fmt.Printf("Installation ID (%T) %v", client, client)
+		err = server.processPullRequestEvent(ctx, event)
 		if err != nil {
 			log.Printf("error processing github pull request event %v", err)
 			http.Error(w, fmt.Sprintf("error processing github pull request event %v", err), http.StatusBadRequest)
@@ -99,12 +101,16 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 }
 
 // Handles a PullRequestEvent
-func (server *Server) processPullRequestEvent(ctx context.Context, client *github.Client, event *github.PullRequestEvent) error {
+func (server *Server) processPullRequestEvent(ctx context.Context, event *github.PullRequestEvent) error {
 	// Params for creating db items populated from event info
 	createParams := getCreateParamsFromEvent(event)
 
 	switch event.GetAction() {
 	case "opened", "synchronize", "reopened", "closed":
+		if err := server.GetOrCreatePullRequestAction(ctx, event.GetAction()); err != nil {
+			return err
+		}
+
 		ghUser, err := server.GetOrCreateGithubUser(ctx, createParams.GithubUser)
 		if err != nil {
 			return err
@@ -117,10 +123,6 @@ func (server *Server) processPullRequestEvent(ctx context.Context, client *githu
 
 		pr, err := server.GetOrCreatePullRequest(ctx, createParams.PullRequest)
 		if err != nil {
-			return err
-		}
-
-		if err := server.GetOrCreatePullRequestAction(ctx, event.GetAction()); err != nil {
 			return err
 		}
 
@@ -137,6 +139,25 @@ func (server *Server) processPullRequestEvent(ctx context.Context, client *githu
 		log.Printf("Creating a commit status for pull request %s/%d created by %s", repo.Name, pr.PrNumber, ghUser.Login)
 		log.Printf("approval %v", approval)
 
+		// client, err = server.githubClientFactory.NewClient(ctx, event.GetInstallation().GetID())
+		// if err != nil {
+		// 	return fmt.Errorf("github client error %v", err)
+		// }
+
+		// client, err := server.getInstallationGitHubClient(ctx, event.GetInstallation().GetID())
+		// if err != nil {
+		// 	return err
+		// }
+
+		client, err := server.githubFactory.NewInstallationClient(ctx, event.GetInstallation().GetID())
+		if err != nil {
+			return fmt.Errorf("github client error %v", err)
+		}
+
+		fmt.Printf("client (%T)", client)
+		fmt.Printf("server.githubAppId (%T) %v", server.githubAppId, server.githubAppId)
+		fmt.Printf("Installation ID (%T) %v", client, client)
+
 		failedStatus := &github.RepoStatus{
 			// TODO: Get these fields from the database at startup and then use them for all requests
 			Context:     github.String(statusContext),
@@ -151,9 +172,9 @@ func (server *Server) processPullRequestEvent(ctx context.Context, client *githu
 		)
 
 		if err == nil {
-			log.Printf("Successfully created commit status for pull request %s/%d", repo.Name, pr.PrNumber)
+			log.Printf("created repo status (check) for pull request %s/%d", repo.Name, pr.PrNumber)
 		} else {
-			return fmt.Errorf("failed to create commit status for pull request %s/%d: status: %v, response: %v, err: %v", repo.Name, pr.PrNumber, status, response, err)
+			return fmt.Errorf("failed to create repo status (check) for pull request %s/%d: status: %v, response: %v, err: %v", repo.Name, pr.PrNumber, status, response, err)
 		}
 
 		// case "closed":

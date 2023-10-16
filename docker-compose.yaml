@@ -23,20 +23,9 @@ services:
       - "8080:8080"
     env_file:
       - .env
-    # environment:
-    #   - DATABASE_URL=postgres://postgres:postgres@postgres:5432/pr_compliance
     depends_on:
       - postgres
     restart: on-failure
-  ## Troubleshooting services
-  # curl:
-  #   image: curlimages/curl:latest
-  #   tty: true
-  #   command: ["cat", "-"]
-  # ubuntu:
-  #   image: ubuntu:latest
-  #   tty: true
-  #   command: ["cat", "-"]
 volumes:
   db:
     driver: local
