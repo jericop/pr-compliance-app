@@ -81,22 +81,34 @@ func TestPostWebhookEvent(t *testing.T) {
 			mock.WithRequestMatchHandler(
 				mock.PostReposStatusesByOwnerByRepoBySha,
 				http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-					// http.Error(w, fmt.Sprintf("github went belly up or something"), http.StatusInternalServerError)
-					mock.WriteError(
-						w,
-						http.StatusInternalServerError,
-						"github went belly up or something",
-					)
+					fmt.Printf("777888 inside the mocked function call")
+					http.Error(w, fmt.Sprintf("github went belly up or something"), http.StatusInternalServerError)
+					// mock.WriteError(
+					// 	w,
+					// 	http.StatusInternalServerError,
+					// 	"github went belly up or something",
+					// )
 				}),
 			),
 		)
+		fmt.Printf("badClient %v\n", badClient)
 
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
+		urlPath := getRouteUrlPath(t, apiServer.router, "PostWebhookEvent")
+		api := getApiServer(updateQuerierWithSuccessPostWebhookEventReturns(&fakes.Querier{})).WithRoutes()
+
+		// Requests to this http server will not show up in the api blueprint document.
+		server2 := httptest.NewServer(api.router)
+		defer server2.Close()
+
+		// f := api.githubFactory.(*mockGithubFactory)
+		// log.Printf("f.newInstallationClientReturns %#v", f.newInstallationClientReturns)
+
+		api.githubFactory = NewMockGithubClientFactory(api).
 			WithValidateWebhookReturns(newPrEvent("opened").getEvent(), nil).
 			WithNewInstallationClientReturns(badClient, nil)
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+			return http.Post(server2.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 

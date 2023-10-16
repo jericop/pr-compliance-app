@@ -71,6 +71,11 @@ func (server *Server) AddAllRoutes() {
 	server.AddApprovalRoutes()
 }
 
+func (server *Server) WithRoutes() *Server {
+	server.AddAllRoutes()
+	return server
+}
+
 // ExecTx executes a function within a database transaction
 func (server *Server) execTx(ctx context.Context, fn func(postgres.Querier) error) error {
 	tx, err := server.connPool.Begin(ctx)
