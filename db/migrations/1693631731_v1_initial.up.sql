@@ -1,5 +1,7 @@
 -- NOT NULL is used frequently to ensure that sqlc generates native go types rather than nullable pg types
 
+-- TODO: use pull_request(id) as the foreign key in other tables
+
 CREATE TABLE IF NOT EXISTS repo (
   id INT NOT NULL,
   org TEXT NOT NULL,
@@ -53,7 +55,8 @@ CREATE TABLE IF NOT EXISTS approval (
   uuid VARCHAR(36) NOT NULL,
   pr_id INT NOT NULL,
   sha VARCHAR(40) NOT NULL,
-  approved_on TIMESTAMP NOT NULL DEFAULT NOW(),
+  is_approved BOOLEAN NOT NULL DEFAULT false,
+  last_updated TIMESTAMP NOT NULL DEFAULT NOW(),
 
   UNIQUE(uuid, pr_id, sha),
   CONSTRAINT FK_approval_pull_request_id FOREIGN KEY (pr_id) REFERENCES pull_request(pr_id)

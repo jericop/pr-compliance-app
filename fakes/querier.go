@@ -171,6 +171,19 @@ type Querier struct {
 		}
 		Stub func(context.Context, int32) (postgres.Approval, error)
 	}
+	GetApprovalByPrIDShaCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.GetApprovalByPrIDShaParams
+		}
+		Returns struct {
+			Approval postgres.Approval
+			Error    error
+		}
+		Stub func(context.Context, postgres.GetApprovalByPrIDShaParams) (postgres.Approval, error)
+	}
 	GetApprovalByUuidCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -221,19 +234,6 @@ type Querier struct {
 		}
 		Stub func(context.Context) ([]postgres.GhUser, error)
 	}
-	GetPullRequestCall struct {
-		mutex     sync.Mutex
-		CallCount int
-		Receives  struct {
-			Ctx context.Context
-			Id  int32
-		}
-		Returns struct {
-			PullRequest postgres.PullRequest
-			Error       error
-		}
-		Stub func(context.Context, int32) (postgres.PullRequest, error)
-	}
 	GetPullRequestActionCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -258,6 +258,32 @@ type Querier struct {
 			Error       error
 		}
 		Stub func(context.Context) ([]string, error)
+	}
+	GetPullRequestByIdCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Id  int32
+		}
+		Returns struct {
+			PullRequest postgres.PullRequest
+			Error       error
+		}
+		Stub func(context.Context, int32) (postgres.PullRequest, error)
+	}
+	GetPullRequestByRepoIdPrIdCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.GetPullRequestByRepoIdPrIdParams
+		}
+		Returns struct {
+			PullRequest postgres.PullRequest
+			Error       error
+		}
+		Stub func(context.Context, postgres.GetPullRequestByRepoIdPrIdParams) (postgres.PullRequest, error)
 	}
 	GetPullRequestEventCall struct {
 		mutex     sync.Mutex
@@ -531,6 +557,17 @@ func (f *Querier) GetApprovalById(param1 context.Context, param2 int32) (postgre
 	}
 	return f.GetApprovalByIdCall.Returns.Approval, f.GetApprovalByIdCall.Returns.Error
 }
+func (f *Querier) GetApprovalByPrIDSha(param1 context.Context, param2 postgres.GetApprovalByPrIDShaParams) (postgres.Approval, error) {
+	f.GetApprovalByPrIDShaCall.mutex.Lock()
+	defer f.GetApprovalByPrIDShaCall.mutex.Unlock()
+	f.GetApprovalByPrIDShaCall.CallCount++
+	f.GetApprovalByPrIDShaCall.Receives.Ctx = param1
+	f.GetApprovalByPrIDShaCall.Receives.Arg = param2
+	if f.GetApprovalByPrIDShaCall.Stub != nil {
+		return f.GetApprovalByPrIDShaCall.Stub(param1, param2)
+	}
+	return f.GetApprovalByPrIDShaCall.Returns.Approval, f.GetApprovalByPrIDShaCall.Returns.Error
+}
 func (f *Querier) GetApprovalByUuid(param1 context.Context, param2 string) (postgres.Approval, error) {
 	f.GetApprovalByUuidCall.mutex.Lock()
 	defer f.GetApprovalByUuidCall.mutex.Unlock()
@@ -573,17 +610,6 @@ func (f *Querier) GetGithubUsers(param1 context.Context) ([]postgres.GhUser, err
 	}
 	return f.GetGithubUsersCall.Returns.GhUserSlice, f.GetGithubUsersCall.Returns.Error
 }
-func (f *Querier) GetPullRequest(param1 context.Context, param2 int32) (postgres.PullRequest, error) {
-	f.GetPullRequestCall.mutex.Lock()
-	defer f.GetPullRequestCall.mutex.Unlock()
-	f.GetPullRequestCall.CallCount++
-	f.GetPullRequestCall.Receives.Ctx = param1
-	f.GetPullRequestCall.Receives.Id = param2
-	if f.GetPullRequestCall.Stub != nil {
-		return f.GetPullRequestCall.Stub(param1, param2)
-	}
-	return f.GetPullRequestCall.Returns.PullRequest, f.GetPullRequestCall.Returns.Error
-}
 func (f *Querier) GetPullRequestAction(param1 context.Context, param2 string) (string, error) {
 	f.GetPullRequestActionCall.mutex.Lock()
 	defer f.GetPullRequestActionCall.mutex.Unlock()
@@ -604,6 +630,28 @@ func (f *Querier) GetPullRequestActions(param1 context.Context) ([]string, error
 		return f.GetPullRequestActionsCall.Stub(param1)
 	}
 	return f.GetPullRequestActionsCall.Returns.StringSlice, f.GetPullRequestActionsCall.Returns.Error
+}
+func (f *Querier) GetPullRequestById(param1 context.Context, param2 int32) (postgres.PullRequest, error) {
+	f.GetPullRequestByIdCall.mutex.Lock()
+	defer f.GetPullRequestByIdCall.mutex.Unlock()
+	f.GetPullRequestByIdCall.CallCount++
+	f.GetPullRequestByIdCall.Receives.Ctx = param1
+	f.GetPullRequestByIdCall.Receives.Id = param2
+	if f.GetPullRequestByIdCall.Stub != nil {
+		return f.GetPullRequestByIdCall.Stub(param1, param2)
+	}
+	return f.GetPullRequestByIdCall.Returns.PullRequest, f.GetPullRequestByIdCall.Returns.Error
+}
+func (f *Querier) GetPullRequestByRepoIdPrId(param1 context.Context, param2 postgres.GetPullRequestByRepoIdPrIdParams) (postgres.PullRequest, error) {
+	f.GetPullRequestByRepoIdPrIdCall.mutex.Lock()
+	defer f.GetPullRequestByRepoIdPrIdCall.mutex.Unlock()
+	f.GetPullRequestByRepoIdPrIdCall.CallCount++
+	f.GetPullRequestByRepoIdPrIdCall.Receives.Ctx = param1
+	f.GetPullRequestByRepoIdPrIdCall.Receives.Arg = param2
+	if f.GetPullRequestByRepoIdPrIdCall.Stub != nil {
+		return f.GetPullRequestByRepoIdPrIdCall.Stub(param1, param2)
+	}
+	return f.GetPullRequestByRepoIdPrIdCall.Returns.PullRequest, f.GetPullRequestByRepoIdPrIdCall.Returns.Error
 }
 func (f *Querier) GetPullRequestEvent(param1 context.Context, param2 int32) (postgres.PullRequestEvent, error) {
 	f.GetPullRequestEventCall.mutex.Lock()

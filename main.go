@@ -23,7 +23,10 @@ func main() {
 	defer connPool.Close()
 
 	db := postgres.New(connPool)
-	apiServer := api.NewServer(db)
+	apiServer, err := api.NewServer(connPool, db)
+	if err != nil {
+		log.Fatalf("Error setting up server: %v\n", err)
+	}
 
 	http.ListenAndServe(":8080", apiServer.Router)
 }

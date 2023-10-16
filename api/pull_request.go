@@ -12,7 +12,7 @@ func (server *Server) AddPullRequestRoutes() {
 
 // GetPullRequests retrieves the collection of PullRequests
 func (server *Server) GetPullRequests(w http.ResponseWriter, req *http.Request) {
-	pullRequests, err := server.store.GetPullRequests(context.Background())
+	pullRequests, err := server.querier.GetPullRequests(context.Background())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

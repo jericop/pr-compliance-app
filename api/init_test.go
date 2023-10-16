@@ -13,9 +13,6 @@ import (
 	"github.com/s-mang/test2doc/vars"
 )
 
-var router *mux.Router
-
-// var server *httptest.Server
 var test2docServer *test.Server
 var apiServer *Server
 var fakeStore *fakes.Querier
@@ -27,7 +24,7 @@ func TestMain(m *testing.M) {
 	apiServer.AddAllRoutes()
 	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.Router))
 
-	// This http server records requests/responses to generate the api blueprint document based on tests.
+	// Requests to this http server will show up in the api blueprint document.
 	test2docServer, err = test.NewServer(apiServer.Router)
 	if err != nil {
 		panic(err.Error())
@@ -38,12 +35,12 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func getApiServer(store *fakes.Querier) *Server {
+func getApiServer(querier *fakes.Querier) *Server {
 	return &Server{
-		store:         store,
-		webhookSecret: "0123456789abcdef",
-		jsonMarshal:   json.Marshal,
-		Router:        mux.NewRouter(),
+		querier:             querier,
+		githubWebhookSecret: "0123456789abcdef",
+		jsonMarshal:         json.Marshal,
+		Router:              mux.NewRouter(),
 	}
 }
 

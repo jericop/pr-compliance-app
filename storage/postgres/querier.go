@@ -22,13 +22,15 @@ type Querier interface {
 	DeletePullRequestEvent(ctx context.Context, id int32) error
 	DeleteRepo(ctx context.Context, id int32) error
 	GetApprovalById(ctx context.Context, id int32) (Approval, error)
+	GetApprovalByPrIDSha(ctx context.Context, arg GetApprovalByPrIDShaParams) (Approval, error)
 	GetApprovalByUuid(ctx context.Context, uuid string) (Approval, error)
 	GetApprovals(ctx context.Context) ([]Approval, error)
 	GetGithubUser(ctx context.Context, id int32) (GhUser, error)
 	GetGithubUsers(ctx context.Context) ([]GhUser, error)
-	GetPullRequest(ctx context.Context, id int32) (PullRequest, error)
 	GetPullRequestAction(ctx context.Context, name string) (string, error)
 	GetPullRequestActions(ctx context.Context) ([]string, error)
+	GetPullRequestById(ctx context.Context, id int32) (PullRequest, error)
+	GetPullRequestByRepoIdPrId(ctx context.Context, arg GetPullRequestByRepoIdPrIdParams) (PullRequest, error)
 	GetPullRequestEvent(ctx context.Context, id int32) (PullRequestEvent, error)
 	GetPullRequestEvents(ctx context.Context) ([]PullRequestEvent, error)
 	GetPullRequestForUpdate(ctx context.Context, id int32) (PullRequest, error)

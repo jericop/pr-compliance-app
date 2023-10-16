@@ -54,13 +54,37 @@ func (q *Queries) DeletePullRequest(ctx context.Context, id int32) error {
 	return err
 }
 
-const getPullRequest = `-- name: GetPullRequest :one
+const getPullRequestById = `-- name: GetPullRequestById :one
 SELECT id, repo_id, pr_id, pr_number, opened_by, is_merged FROM pull_request
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetPullRequest(ctx context.Context, id int32) (PullRequest, error) {
-	row := q.db.QueryRow(ctx, getPullRequest, id)
+func (q *Queries) GetPullRequestById(ctx context.Context, id int32) (PullRequest, error) {
+	row := q.db.QueryRow(ctx, getPullRequestById, id)
+	var i PullRequest
+	err := row.Scan(
+		&i.ID,
+		&i.RepoID,
+		&i.PrID,
+		&i.PrNumber,
+		&i.OpenedBy,
+		&i.IsMerged,
+	)
+	return i, err
+}
+
+const getPullRequestByRepoIdPrId = `-- name: GetPullRequestByRepoIdPrId :one
+SELECT id, repo_id, pr_id, pr_number, opened_by, is_merged FROM pull_request
+WHERE repo_id = $1 AND pr_id = $2 LIMIT 1
+`
+
+type GetPullRequestByRepoIdPrIdParams struct {
+	RepoID int32 `json:"repo_id"`
+	PrID   int32 `json:"pr_id"`
+}
+
+func (q *Queries) GetPullRequestByRepoIdPrId(ctx context.Context, arg GetPullRequestByRepoIdPrIdParams) (PullRequest, error) {
+	row := q.db.QueryRow(ctx, getPullRequestByRepoIdPrId, arg.RepoID, arg.PrID)
 	var i PullRequest
 	err := row.Scan(
 		&i.ID,

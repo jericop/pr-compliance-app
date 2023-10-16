@@ -9,11 +9,12 @@ import (
 )
 
 type Approval struct {
-	ID         int32     `json:"id"`
-	Uuid       string    `json:"uuid"`
-	PrID       int32     `json:"pr_id"`
-	Sha        string    `json:"sha"`
-	ApprovedOn time.Time `json:"approved_on"`
+	ID          int32     `json:"id"`
+	Uuid        string    `json:"uuid"`
+	PrID        int32     `json:"pr_id"`
+	Sha         string    `json:"sha"`
+	IsApproved  bool      `json:"is_approved"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 type GhUser struct {

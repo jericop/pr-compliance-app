@@ -4,9 +4,13 @@ VALUES
   ($1, $2, $3, $4, $5)
 RETURNING *;
 
--- name: GetPullRequest :one
+-- name: GetPullRequestById :one
 SELECT * FROM pull_request
 WHERE id = $1 LIMIT 1;
+
+-- name: GetPullRequestByRepoIdPrId :one
+SELECT * FROM pull_request
+WHERE repo_id = $1 AND pr_id = $2 LIMIT 1;
 
 -- name: GetPullRequests :many
 SELECT * FROM pull_request;

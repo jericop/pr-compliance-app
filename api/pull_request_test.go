@@ -16,7 +16,7 @@ var validPullRequests []postgres.PullRequest
 func TestGetPullRequests(t *testing.T) {
 	urlPath := getRouteUrlPath(t, apiServer.Router, "GetPullRequests")
 
-	// This http server does not record requests and requests to it will not show up in the api blueprint document.
+	// Requests to this http server will not show up in the api blueprint document.
 	server := httptest.NewServer(apiServer.Router)
 	defer server.Close()
 

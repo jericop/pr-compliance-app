@@ -7,21 +7,20 @@ package postgres
 
 import (
 	"context"
-	"time"
 )
 
 const createApproval = `-- name: CreateApproval :one
-INSERT INTO approval(uuid, pr_id, sha, approved_on)
+INSERT INTO approval(uuid, pr_id, sha, is_approved)
 VALUES 
   ($1, $2, $3, $4)
-RETURNING id, uuid, pr_id, sha, approved_on
+RETURNING id, uuid, pr_id, sha, is_approved, last_updated
 `
 
 type CreateApprovalParams struct {
-	Uuid       string    `json:"uuid"`
-	PrID       int32     `json:"pr_id"`
-	Sha        string    `json:"sha"`
-	ApprovedOn time.Time `json:"approved_on"`
+	Uuid       string `json:"uuid"`
+	PrID       int32  `json:"pr_id"`
+	Sha        string `json:"sha"`
+	IsApproved bool   `json:"is_approved"`
 }
 
 func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) (Approval, error) {
@@ -29,7 +28,7 @@ func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) 
 		arg.Uuid,
 		arg.PrID,
 		arg.Sha,
-		arg.ApprovedOn,
+		arg.IsApproved,
 	)
 	var i Approval
 	err := row.Scan(
@@ -37,7 +36,8 @@ func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) 
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
-		&i.ApprovedOn,
+		&i.IsApproved,
+		&i.LastUpdated,
 	)
 	return i, err
 }
@@ -53,7 +53,7 @@ func (q *Queries) DeleteApproval(ctx context.Context, id int32) error {
 }
 
 const getApprovalById = `-- name: GetApprovalById :one
-SELECT id, uuid, pr_id, sha, approved_on FROM approval
+SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 WHERE id = $1 LIMIT 1
 `
 
@@ -65,13 +65,38 @@ func (q *Queries) GetApprovalById(ctx context.Context, id int32) (Approval, erro
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
-		&i.ApprovedOn,
+		&i.IsApproved,
+		&i.LastUpdated,
+	)
+	return i, err
+}
+
+const getApprovalByPrIDSha = `-- name: GetApprovalByPrIDSha :one
+SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
+WHERE pr_id = $1 AND sha = $2 LIMIT 1
+`
+
+type GetApprovalByPrIDShaParams struct {
+	PrID int32  `json:"pr_id"`
+	Sha  string `json:"sha"`
+}
+
+func (q *Queries) GetApprovalByPrIDSha(ctx context.Context, arg GetApprovalByPrIDShaParams) (Approval, error) {
+	row := q.db.QueryRow(ctx, getApprovalByPrIDSha, arg.PrID, arg.Sha)
+	var i Approval
+	err := row.Scan(
+		&i.ID,
+		&i.Uuid,
+		&i.PrID,
+		&i.Sha,
+		&i.IsApproved,
+		&i.LastUpdated,
 	)
 	return i, err
 }
 
 const getApprovalByUuid = `-- name: GetApprovalByUuid :one
-SELECT id, uuid, pr_id, sha, approved_on FROM approval
+SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 WHERE uuid = $1 LIMIT 1
 `
 
@@ -83,13 +108,14 @@ func (q *Queries) GetApprovalByUuid(ctx context.Context, uuid string) (Approval,
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
-		&i.ApprovedOn,
+		&i.IsApproved,
+		&i.LastUpdated,
 	)
 	return i, err
 }
 
 const getApprovals = `-- name: GetApprovals :many
-SELECT id, uuid, pr_id, sha, approved_on FROM approval
+SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 `
 
 func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
@@ -106,7 +132,8 @@ func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
 			&i.Uuid,
 			&i.PrID,
 			&i.Sha,
-			&i.ApprovedOn,
+			&i.IsApproved,
+			&i.LastUpdated,
 		); err != nil {
 			return nil, err
 		}

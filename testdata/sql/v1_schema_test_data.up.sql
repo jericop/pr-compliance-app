@@ -52,15 +52,15 @@ VALUES
 ;
 
 -- This is inserting data into the compliance approval table, not be confused with an approval for the pull request.
-INSERT INTO approval(uuid, pr_id, sha, approved_on)
+INSERT INTO approval(uuid, pr_id, sha, is_approved)
 VALUES
   -- This would be an example where approvals were done for each commit
-  ('82a844d8-fccc-47e1-a3fd-008b17b67510', 991, '78981922613b2afb6025042ff6bd878ac1994e85', NOW()),
-  ('82a844d8-fccc-47e1-a3fd-008b17b67510', 991, '61780798228d17af2d34fce4cfbdf35556832472', NOW()),
+  ('82a844d8-fccc-47e1-a3fd-008b17b67510', 991, '78981922613b2afb6025042ff6bd878ac1994e85', true),
+  ('82a844d8-fccc-47e1-a3fd-008b17b67510', 991, '61780798228d17af2d34fce4cfbdf35556832472', true),
   
   -- This is an example where the approval was done for the last commit before being merged
-  ('a0b3adb0-174c-4be5-984e-3005aeffbf65', 992, 'f2ad6c76f0115a6ba5b00456a849810e7ec0af20', NOW()),
+  ('a0b3adb0-174c-4be5-984e-3005aeffbf65', 992, 'f2ad6c76f0115a6ba5b00456a849810e7ec0af20', true),
   
   -- This is an example where the PR
-  ('7829491b-9bdc-4167-87e3-73a334fb5916', 993, '4bcfe98e640c8284511312660fb8709b0afa888e', NOW())
+  ('7829491b-9bdc-4167-87e3-73a334fb5916', 993, '4bcfe98e640c8284511312660fb8709b0afa888e', true)
 ;

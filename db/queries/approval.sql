@@ -1,5 +1,5 @@
 -- name: CreateApproval :one
-INSERT INTO approval(uuid, pr_id, sha, approved_on)
+INSERT INTO approval(uuid, pr_id, sha, is_approved)
 VALUES 
   ($1, $2, $3, $4)
 RETURNING *;
@@ -11,6 +11,10 @@ WHERE id = $1 LIMIT 1;
 -- name: GetApprovalByUuid :one
 SELECT * FROM approval
 WHERE uuid = $1 LIMIT 1;
+
+-- name: GetApprovalByPrIDSha :one
+SELECT * FROM approval
+WHERE pr_id = $1 AND sha = $2 LIMIT 1;
 
 -- name: GetApprovals :many
 SELECT * FROM approval;
