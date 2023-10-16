@@ -18,7 +18,7 @@ import (
 type Server struct {
 	connPool                *pgxpool.Pool
 	querier                 postgres.Querier
-	jsonMarshal             func(v any) ([]byte, error) // Allows json.Marshall to be mocked
+	jsonMarshal             func(v any) ([]byte, error) // Allows json.Marshal to be mocked
 	githubAppId             string
 	githubWebhookSecret     string
 	githubPrivateKey        *rsa.PrivateKey

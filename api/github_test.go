@@ -80,10 +80,32 @@ type mockGithubFactory struct {
 		event interface{}
 		err   error
 	}
+	newInstallationClientReturns struct {
+		httpClient *http.Client
+		err        error
+	}
 }
 
 func NewMockGithubClientFactory(server *Server) *mockGithubFactory {
-	return &mockGithubFactory{server: server}
+	factory := &mockGithubFactory{server: server}
+
+	// default mocks for factory
+	factory.newInstallationClientReturns.httpClient = mock.NewMockedHTTPClient(
+		mock.WithRequestMatch(
+			mock.PostReposStatusesByOwnerByRepoBySha,
+			github.RepoStatus{
+				ID: github.Int64(int64(333)),
+			},
+		),
+		mock.WithRequestMatch(
+			mock.PostAppInstallationsAccessTokensByInstallationId,
+			github.InstallationToken{
+				Token: github.String("something"),
+			},
+		),
+	)
+
+	return factory
 }
 
 func (f *mockGithubFactory) WithValidateWebhookReturns(event interface{}, err error) *mockGithubFactory {
@@ -92,28 +114,16 @@ func (f *mockGithubFactory) WithValidateWebhookReturns(event interface{}, err er
 	return f
 }
 
+func (f *mockGithubFactory) WithNewInstallationClientReturns(client *http.Client, err error) *mockGithubFactory {
+	f.newInstallationClientReturns.httpClient = client
+	f.newInstallationClientReturns.err = err
+	return f
+}
+
 func (f *mockGithubFactory) ValidatWebhookRequest(r *http.Request) (interface{}, error) {
 	return f.validateWebhookReturns.event, f.validateWebhookReturns.err
 }
 
 func (f *mockGithubFactory) NewInstallationClient(ctx context.Context, installationID int64) (*github.Client, error) {
-	mockedHTTPClient := mock.NewMockedHTTPClient(
-		mock.WithRequestMatch(
-			// https://github.com/google/go-github/blob/16e695dadf7afb7983193499816a009ae2227a61/github/repos_statuses.go#L75
-			// https://github.com/migueleliasweb/go-github-mock/blob/1784f27b54c9c95f12160449d7e16344dd512e88/src/mock/endpointpattern.go#L3470
-			mock.PostReposStatusesByOwnerByRepoBySha,
-			github.RepoStatus{
-				ID: github.Int64(int64(333)),
-			},
-		),
-		mock.WithRequestMatch(
-			// https://github.com/google/go-github/blob/16e695dadf7afb7983193499816a009ae2227a61/github/apps.go#L310
-			// https://github.com/migueleliasweb/go-github-mock/blob/1784f27b54c9c95f12160449d7e16344dd512e88/src/mock/endpointpattern.go#L75C5-L75C53
-			mock.PostAppInstallationsAccessTokensByInstallationId,
-			github.InstallationToken{
-				Token: github.String("something"),
-			},
-		),
-	)
-	return github.NewClient(mockedHTTPClient), nil
+	return github.NewClient(f.newInstallationClientReturns.httpClient), f.newInstallationClientReturns.err
 }

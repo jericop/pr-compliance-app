@@ -2,11 +2,8 @@ package api
 
 import (
 	"bytes"
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -89,43 +86,43 @@ func TestPostWebhookEvent(t *testing.T) {
 	apiServer.githubPrivateKey = key
 
 	for n, test := range tests {
-		// Only use test2doc server for the first payload to keep the api documentation concise
 		testNamePrefix := ""
-		serverUrl := server.URL
+		serverURL := server.URL
+
+		// Only use test2doc server for the first payload to keep the api documentation concise
 		if n == 0 {
 			testNamePrefix = "test2doc"
-			serverUrl = test2docServer.URL
+			serverURL = test2docServer.URL
 		}
 
 		t.Run(fmt.Sprintf("StatusOK %v %v", testNamePrefix, test.name), func(t *testing.T) {
-
-			pJson, err := apiServer.jsonMarshal(test.payload)
-			if err != nil {
-				t.Errorf("json marshal error (%#v): %v", test.payload, err)
-			}
-
-			buf := bytes.NewBuffer(pJson)
+			apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
+				WithValidateWebhookReturns(newPrEvent("opened").getEvent(), nil)
 
 			makeHttpRequest(t, http.StatusOK, func() (resp *http.Response, err error) {
-
-				req, err := http.NewRequest("POST", serverUrl+urlPath, buf)
-				if err != nil {
-					t.Errorf("NewRequest: %v", err)
-				}
-
-				// Get payload sha1 signature using githubWebhookSecret
-				mac := hmac.New(sha1.New, []byte(apiServer.githubWebhookSecret))
-				mac.Write(pJson)
-				expectedMAC := mac.Sum(nil)
-
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set(github.SHA1SignatureHeader, "sha1="+hex.EncodeToString(expectedMAC))
-				req.Header.Set(github.EventTypeHeader, test.messageType)
-
-				return http.DefaultClient.Do(req)
+				return http.Post(serverURL+urlPath, "application/json", bytes.NewBufferString("{}"))
 			})
 		})
 	}
+
+	t.Run("StatusBadRequest validate webhook event error", func(t *testing.T) {
+		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
+			WithValidateWebhookReturns(struct{}{}, fmt.Errorf("json marshal error"))
+
+		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+		})
+	})
+
+	t.Run("StatusBadRequest new installation client error", func(t *testing.T) {
+		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
+			WithValidateWebhookReturns(newPrEvent("opened").getEvent(), nil).
+			WithNewInstallationClientReturns(&http.Client{}, fmt.Errorf("github client error"))
+
+		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+		})
+	})
 
 	t.Run("StatusBadRequest querier error GetOrCreateApproval", func(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
@@ -135,7 +132,7 @@ func TestPostWebhookEvent(t *testing.T) {
 		fakeStore.CreateApprovalCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString(""))
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 
@@ -146,7 +143,7 @@ func TestPostWebhookEvent(t *testing.T) {
 		fakeStore.CreatePullRequestEventCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString(""))
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 
@@ -158,7 +155,19 @@ func TestPostWebhookEvent(t *testing.T) {
 		fakeStore.CreatePullRequestCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString(""))
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+		})
+	})
+
+	t.Run("StatusBadRequest querier error GetOrCreateRepo", func(t *testing.T) {
+		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
+			WithValidateWebhookReturns(newPrEvent("opened").getEvent(), nil)
+
+		fakeStore.GetRepoCall.Returns.Error = fmt.Errorf("querier error")
+		fakeStore.CreateRepoCall.Returns.Error = fmt.Errorf("querier error")
+
+		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 
@@ -170,7 +179,7 @@ func TestPostWebhookEvent(t *testing.T) {
 		fakeStore.CreateGithubUserCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString(""))
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 
@@ -182,16 +191,30 @@ func TestPostWebhookEvent(t *testing.T) {
 		fakeStore.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString(""))
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 
-	t.Run("StatusBadRequest validate webhook event error", func(t *testing.T) {
+	t.Run("StatusBadRequest querier GetOrCreatePullRequestAction map update", func(t *testing.T) {
 		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookReturns(struct{}{}, fmt.Errorf("json marshalerror"))
+			WithValidateWebhookReturns(newPrEvent("opened").getEvent(), nil)
+
+		fakeStore.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
+		fakeStore.CreatePullRequestActionCall.Returns.Error = nil
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
-			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString(""))
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+		})
+
+		if _, known := apiServer.KnownPullRequestActions["opened"]; !known {
+			t.Errorf("Expected 'opened' to be in map %#v", apiServer.KnownPullRequestActions)
+		}
+
+		// If it's not in the map then it will return an error
+		fakeStore.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
+
+		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 	})
 
