@@ -69,6 +69,14 @@ smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 	* This dependency is only used in test code.
 	* The API Blueprint document gets created and updated in the `api` folder.
 
+# Development
+
+## Database
+
+* See the README in the `db/migrations` folder more information on database migrations.
+* Use `make regen-db-and-mocks` to generate sqlc database code and then generate the `fakes.Querier` interface used to mock it for unit tests.
+	* See `//go:generate` comments in `storage/storage.go`
+
 # Tests
 
 This project strives for high test coverage, especially where it matters most. Since `test2doc` is used to generate the API Blueprint document, all of the api endpoints should be tested. This also assumes that any api changes will come with full tests, so the API Blueprint document stays up to date.

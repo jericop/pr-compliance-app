@@ -2,7 +2,6 @@ BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo no-commit-id)
 WORKSPACE := $(shell pwd)
 PKG := $(shell go list ./... | grep -v e2e | grep -v static | grep -v mocks | grep -v testing)
 PKG_COMMAS := $(shell go list ./... | grep -v e2e | grep -v static | grep -v mocks | grep -v testing | tr '\n' ',')
-IMAGE_NAME := runatlantis/atlantis
 
 .DEFAULT_GOAL := help
 
@@ -17,7 +16,6 @@ id: ## Output BUILD_ID being used
 .PHONY: debug
 debug: ## Output internal make variables
 	@echo BUILD_ID = $(BUILD_ID)
-	@echo IMAGE_NAME = $(IMAGE_NAME)
 	@echo WORKSPACE = $(WORKSPACE)
 	@echo PKG = $(PKG)
 
@@ -35,21 +33,16 @@ all: build-service ## Runs make build-service
 clean: ## Cleans compiled binary
 	@rm -f build
 
+.PHONY: sqlc-generate
+sqlc-generate: ## Generates database code from sqlc.yaml config.
+	sqlc generate
+
 .PHONY: go-generate
 go-generate: ## Run go generate in all packages
 	./scripts/go-generate.sh
 
-.PHONY: regen-mocks
-regen-mocks: ## Delete and regenerate all mocks
-	sqlc-generate
-	find . -type f | grep mocks | xargs rm
-	@# not using $(PKG) here because that includes directories that have now
-	@# been made empty, causing go generate to fail.
-	./scripts/go-generate.sh
-
-.PHONY: sqlc-generate
-sqlc-generate:
-	sqlc generate
+.PHONY: regen-db-and-mocks
+regen-db-and-mocks: sqlc-generate go-generate	## Delete and regenerate all db and mock code
 
 .PHONY: test
 test: ## Run tests
@@ -62,7 +55,7 @@ test-all: ## Run tests including integration
 .PHONY: test-coverage
 test-coverage: ## Show test coverage
 	@mkdir -p .cover
-	@go test -covermode atomic -coverprofile .cover/cover.out $(PKG)
+	@go test -v -covermode atomic -coverprofile .cover/cover.out $(PKG)
 
 .PHONY: test-coverage-html
 test-coverage-html: ## Show test coverage and output html
@@ -78,4 +71,3 @@ lint: ## Run linter locally
 check-lint: ## Run linter in CI/CD. If running locally use 'lint'
 	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin v1.49.0
 	./bin/golangci-lint run -j 4 --timeout 5m
-
