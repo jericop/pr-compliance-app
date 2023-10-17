@@ -56,7 +56,7 @@ smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 
 # App Details
 
-* A postgres database is as the backend.
+* A postgres database is used as the backend.
 * The `db/init` and `db/migrations` folders contain the DDL for app (users, database, tables).
 * Changes are applied using the golang tool [migrate](https://github.com/golang-migrate/migrate)
 * The `queries` folder contains queries used by the application.
@@ -67,6 +67,7 @@ smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 * [test2doc](https://pkg.go.dev/github.com/s-mang/test2doc) is used to generate an [API Blueprint](https://github.com/apiaryio/api-blueprint/blob/master/API%20Blueprint%20Specification.md) document from unit tests.
 	* I learned about this project on the gotime fm podcast [here](https://changelog.com/gotime/5).
 	* This dependency is only used in test code.
+	* The API Blueprint document gets created and updated in the `api` folder.
 
 # Tests
 
