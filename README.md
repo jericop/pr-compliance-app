@@ -71,8 +71,10 @@ smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 
 # Tests
 
-This project strives for high test coverage, especially where it matters most. Since `test2doc` is  used to generate the API Blueprint document, all of the api endpoints should be tested. This also assumes that any api changes will come with full tests, so the API Blueprint document stays up to date.
+This project strives for high test coverage, especially where it matters most. Since `test2doc` is used to generate the API Blueprint document, all of the api endpoints should be tested. This also assumes that any api changes will come with full tests, so the API Blueprint document stays up to date.
 
 # TODO
 
 * Use database transactions for `/webhook_events` endpoint because multiple tables are modified before the status check is created.
+
+# Add installations table
