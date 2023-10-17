@@ -13,6 +13,11 @@ import (
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 )
 
+const (
+	testUuid           = "5fcae4d5-fbb6-417d-8267-70f9b0f6d28f"
+	testInstallationID = 8675309
+)
+
 func TestPostWebhookEvent(t *testing.T) {
 
 	// Requests to this http server will not show up in the api blueprint document.
@@ -242,7 +247,7 @@ func newPrEvent(action string) *prEvent {
 				ID:    github.Int64(int64(1)),
 			},
 			Installation: &github.Installation{
-				ID: github.Int64(int64(8675309)),
+				ID: github.Int64(testInstallationID),
 			},
 			Organization: nil,
 		},
@@ -304,11 +309,10 @@ func TestGetCreateParamsFromEvent(t *testing.T) {
 }
 
 func updateQuerierWithSuccessPostWebhookEventReturns(querier *fakes.Querier) *fakes.Querier {
-	var installationID int32 = 8675309
 
 	e := newPrEvent("opened").getEvent()
 
-	querier.GetInstallationCall.Returns.Int32 = installationID
+	querier.GetInstallationCall.Returns.Int32 = testInstallationID
 
 	querier.GetPullRequestActionCall.Returns.String = "opened"
 
@@ -329,13 +333,13 @@ func updateQuerierWithSuccessPostWebhookEventReturns(querier *fakes.Querier) *fa
 		PrID:           int32(*e.PullRequest.ID),
 		PrNumber:       int32(*e.PullRequest.Number),
 		OpenedBy:       int32(*e.Sender.ID),
-		InstallationID: installationID,
+		InstallationID: testInstallationID,
 		IsMerged:       false,
 	}
 
 	querier.GetApprovalByPrIDShaCall.Returns.Approval = postgres.Approval{
 		ID:         321,
-		Uuid:       "44c5f619-a14e-4820-9840-77c8047159e0", // Use static value so API Blueprint doesn't get regenerated every time tests are run
+		Uuid:       testUuid,
 		PrID:       int32(*e.PullRequest.ID),
 		Sha:        *e.PullRequest.Head.SHA,
 		IsApproved: false,

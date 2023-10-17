@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/jericop/pr-compliance-app/storage/postgres"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
 )
@@ -22,7 +21,7 @@ func TestGetApproval(t *testing.T) {
 	server := httptest.NewServer(apiServer.router)
 	defer server.Close()
 
-	approvalId := uuid.New().String()
+	approvalId := testUuid
 	getTests := []struct {
 		name string
 		url  string
@@ -66,7 +65,7 @@ func TestUpdateApproval(t *testing.T) {
 	server := httptest.NewServer(apiServer.router)
 	defer server.Close()
 
-	approvalId := uuid.New().String()
+	approvalId := testUuid
 	urlPath := getRouteUrlPath(t, apiServer.router, "UpdateApproval")
 
 	p := postgres.UpdateApprovalByUuidParams{
