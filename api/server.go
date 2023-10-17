@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -54,8 +53,6 @@ func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error
 	for _, action := range actions {
 		server.KnownPullRequestActions[action] = struct{}{}
 	}
-
-	log.Printf("server.KnownPullRequestActions[%d] %v", len(server.KnownPullRequestActions), server.KnownPullRequestActions)
 
 	return server, nil
 }

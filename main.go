@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,9 +12,6 @@ import (
 )
 
 func main() {
-	fmt.Printf("DATABASE_URL=%s\n", os.Getenv("DATABASE_URL"))
-
-	// urlExample := "postgres://username:password@localhost:5432/database_name"
 	connPool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
