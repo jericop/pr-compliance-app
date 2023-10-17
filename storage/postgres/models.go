@@ -22,6 +22,10 @@ type GhUser struct {
 	Login string `json:"login"`
 }
 
+type Installation struct {
+	ID int32 `json:"id"`
+}
+
 type PullRequest struct {
 	ID             int32 `json:"id"`
 	RepoID         int32 `json:"repo_id"`

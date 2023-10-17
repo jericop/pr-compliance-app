@@ -12,11 +12,6 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM repo
 ORDER BY org, name;
 
--- name: GetRepoForUpdate :one
-SELECT * FROM repo
-WHERE id = $1 LIMIT 1
-FOR NO KEY UPDATE;
-
 -- name: UpdateRepoName :one
 UPDATE repo
 SET name = $2

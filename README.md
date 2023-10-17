@@ -76,13 +76,12 @@ smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 * See the README in the `db/migrations` folder more information on database migrations.
 * Use `make regen-db-and-mocks` to generate sqlc database code and then generate the `fakes.Querier` interface used to mock it for unit tests.
 	* See `//go:generate` comments in `storage/storage.go`
+* `NOT NULL` is used frequently in DDL to ensure that sqlc generates native go types rather than nullable pg types.
 
-# Tests
+## Tests
 
 This project strives for high test coverage, especially where it matters most. Since `test2doc` is used to generate the API Blueprint document, all of the api endpoints should be tested. This also assumes that any api changes will come with full tests, so the API Blueprint document stays up to date.
 
 # TODO
 
 * Use database transactions for `/webhook_events` endpoint because multiple tables are modified before the status check is created.
-
-# Add installations table

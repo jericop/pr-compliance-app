@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	statusContext   = "Pull Request Compliance"
-	statusTitle     = "User Review Required"
+	statusContext = "Pull Request Compliance"
+	statusTitle   = "User Review Required"
 )
 
 func (server *Server) AddWebhookEventsRoutes() {
@@ -44,38 +44,41 @@ func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Handles a PullRequestEvent
 func (server *Server) processPullRequestEvent(ctx context.Context, event *github.PullRequestEvent) error {
 	// Params for creating db items populated from event info
-	createParams := getCreateParamsFromEvent(event)
+	p := getCreateParamsFromEvent(event)
 
 	switch event.GetAction() {
 	case "opened", "synchronize", "reopened", "closed":
+		if err := server.GetOrCreateInstallation(ctx, p.InstallationID); err != nil {
+			return err
+		}
+
 		if err := server.GetOrCreatePullRequestAction(ctx, event.GetAction()); err != nil {
 			return err
 		}
 
-		ghUser, err := server.GetOrCreateGithubUser(ctx, createParams.GithubUser)
+		ghUser, err := server.GetOrCreateGithubUser(ctx, p.GithubUser)
 		if err != nil {
 			return err
 		}
 
-		repo, err := server.GetOrCreateRepo(ctx, createParams.Repo)
+		repo, err := server.GetOrCreateRepo(ctx, p.Repo)
 		if err != nil {
 			return err
 		}
 
-		pr, err := server.GetOrCreatePullRequest(ctx, createParams.PullRequest)
+		pr, err := server.GetOrCreatePullRequest(ctx, p.PullRequest)
 		if err != nil {
 			return err
 		}
 
-		_, err = server.querier.CreatePullRequestEvent(ctx, createParams.PullRequestEvent)
+		_, err = server.querier.CreatePullRequestEvent(ctx, p.PullRequestEvent)
 		if err != nil {
 			return err
 		}
 
-		approval, err := server.GetOrCreateApproval(ctx, createParams.Approval)
+		approval, err := server.GetOrCreateApproval(ctx, p.Approval)
 		if err != nil {
 			return err
 		}
@@ -97,7 +100,7 @@ func (server *Server) processPullRequestEvent(ctx context.Context, event *github
 		}
 
 		_, _, err = client.Repositories.CreateStatus(
-			ctx, createParams.GithubUser.Login, createParams.Repo.Name, createParams.PullRequestEvent.Sha, failedStatus,
+			ctx, p.GithubUser.Login, p.Repo.Name, p.PullRequestEvent.Sha, failedStatus,
 		)
 		if err != nil {
 			return err
@@ -110,6 +113,7 @@ func (server *Server) processPullRequestEvent(ctx context.Context, event *github
 }
 
 type PullRequestEventCreateParams struct {
+	InstallationID   int32
 	GithubUser       postgres.CreateGithubUserParams
 	Repo             postgres.CreateRepoParams
 	PullRequest      postgres.CreatePullRequestParams
@@ -123,7 +127,15 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 		orgName = *event.Organization.Name
 	}
 
+	log.Printf("installation %#v", event.GetInstallation())
+	log.Printf("account %#v", event.GetInstallation().GetAccount())
+
 	return PullRequestEventCreateParams{
+		InstallationID: int32(event.GetInstallation().GetID()),
+		GithubUser: postgres.CreateGithubUserParams{
+			ID:    int32(*event.GetSender().ID),
+			Login: *event.GetSender().Login,
+		},
 		Repo: postgres.CreateRepoParams{
 			Org:  orgName,
 			Name: event.Repo.GetName(),
@@ -142,10 +154,6 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 			Sha:      *event.GetPullRequest().GetHead().SHA,
 			IsMerged: event.PullRequest.GetMerged(),
 		},
-		GithubUser: postgres.CreateGithubUserParams{
-			ID:    int32(*event.GetSender().ID),
-			Login: *event.GetSender().Login,
-		},
 		Approval: postgres.CreateApprovalParams{
 			Uuid:       uuid.New().String(),
 			PrID:       int32(event.PullRequest.GetID()),
@@ -153,6 +161,19 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 			IsApproved: false,
 		},
 	}
+}
+
+func (server *Server) GetOrCreateInstallation(ctx context.Context, id int32) error {
+	if _, err := server.querier.GetInstallation(ctx, id); err != nil {
+		log.Printf("Creating installation %d", id)
+
+		_, err = server.querier.CreateInstallation(ctx, id)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (server *Server) GetOrCreateGithubUser(ctx context.Context, p postgres.CreateGithubUserParams) (postgres.GhUser, error) {
@@ -232,17 +253,15 @@ func (server *Server) GetOrCreateApproval(ctx context.Context, p postgres.Create
 func (server *Server) GetOrCreatePullRequestAction(ctx context.Context, name string) error {
 	_, known := server.KnownPullRequestActions[name]
 	if known {
-		log.Printf("known action %s", name)
+		log.Printf("Known action %s", name)
 		return nil
 	}
 
 	if _, err := server.querier.GetPullRequestAction(ctx, name); err != nil {
-		// log.Printf("action '%s' does not exist: %v", name, err)
 		log.Printf("Creating pull request (event) action %s", name)
 
 		_, err = server.querier.CreatePullRequestAction(ctx, name)
 		if err != nil {
-			// log.Printf("Error creating pull_request_action %s: %v", name, err)
 			return err
 		}
 		server.KnownPullRequestActions[name] = struct{}{}

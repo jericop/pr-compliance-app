@@ -22,11 +22,17 @@ VALUES
   ('synchronize')
 ;
 
+INSERT INTO
+  installation(id)
+VALUES
+  (8675309)
+;
+
 INSERT INTO pull_request (pr_id, pr_number, repo_id, is_merged, installation_id, opened_by)
 VALUES
-    (991, 1, 1, 'false', 54321, 1),
-    (992, 2, 1, 'false', 54321, 2),
-    (993, 1, 2, 'true', 54321, 3) -- already merged
+    (991, 1, 1, 'false', 8675309, 1),
+    (992, 2, 1, 'false', 8675309, 2),
+    (993, 1, 2, 'true', 8675309, 3) -- already merged
 ;
 
 INSERT INTO pull_request_event (pr_id, action, sha, is_merged)

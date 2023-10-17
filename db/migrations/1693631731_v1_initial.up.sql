@@ -1,14 +1,17 @@
 -- NOT NULL is used frequently to ensure that sqlc generates native go types rather than nullable pg types
 
--- TODO: use pull_request(id) as the foreign key in other tables
+CREATE TABLE IF NOT EXISTS installation (
+  id INT NOT NULL,
+  
+  CONSTRAINT PK_installation_id PRIMARY KEY (id)
+);
 
 CREATE TABLE IF NOT EXISTS repo (
   id INT NOT NULL,
   org TEXT NOT NULL,
   name TEXT NOT NULL,
   
-  -- UNIQUE(org, name)
-  CONSTRAINT PK_user_id PRIMARY KEY (id)
+  CONSTRAINT PK_repo_id PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS gh_user (
@@ -30,7 +33,8 @@ CREATE TABLE IF NOT EXISTS pull_request (
   UNIQUE(pr_id),
   UNIQUE(repo_id, pr_number),
   CONSTRAINT FK_pull_request_repo FOREIGN KEY (repo_id) REFERENCES repo(id),
-  CONSTRAINT FK_pull_request_gh_user FOREIGN KEY (opened_by) REFERENCES gh_user(id)
+  CONSTRAINT FK_pull_request_gh_user FOREIGN KEY (opened_by) REFERENCES gh_user(id),
+  CONSTRAINT FK_pull_request_installation FOREIGN KEY (installation_id) REFERENCES installation(id)
 );
 
 CREATE TABLE IF NOT EXISTS pull_request_action (
@@ -63,4 +67,17 @@ CREATE TABLE IF NOT EXISTS approval (
   CONSTRAINT FK_approval_pull_request_id FOREIGN KEY (pr_id) REFERENCES pull_request(pr_id)
 );
 
--- TODO: create trigger to update pull_request(is_merged) when pull_request_event action is received that has that field set to true.
+CREATE OR REPLACE FUNCTION trigger_set_last_updated()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.last_updated = NOW();
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER approval_last_updated
+  BEFORE UPDATE ON approval
+  FOR EACH ROW
+  EXECUTE PROCEDURE trigger_set_last_updated();
+
+-- TODO: Not sure if pr_id is unique across orgs/accounts. It may be best to use pull_request(id) as the foreign key in other tables

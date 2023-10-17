@@ -34,6 +34,19 @@ type Querier struct {
 		}
 		Stub func(context.Context, postgres.CreateGithubUserParams) (postgres.GhUser, error)
 	}
+	CreateInstallationCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Id  int32
+		}
+		Returns struct {
+			Int32 int32
+			Error error
+		}
+		Stub func(context.Context, int32) (int32, error)
+	}
 	CreatePullRequestCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -99,6 +112,18 @@ type Querier struct {
 		Stub func(context.Context, int32) error
 	}
 	DeleteGithubUserCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Id  int32
+		}
+		Returns struct {
+			Error error
+		}
+		Stub func(context.Context, int32) error
+	}
+	DeleteInstallationCall struct {
 		mutex     sync.Mutex
 		CallCount int
 		Receives  struct {
@@ -247,6 +272,31 @@ type Querier struct {
 		}
 		Stub func(context.Context) ([]postgres.GhUser, error)
 	}
+	GetInstallationCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Id  int32
+		}
+		Returns struct {
+			Int32 int32
+			Error error
+		}
+		Stub func(context.Context, int32) (int32, error)
+	}
+	GetInstallationsCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+		}
+		Returns struct {
+			Int32Slice []int32
+			Error      error
+		}
+		Stub func(context.Context) ([]int32, error)
+	}
 	GetPullRequestActionCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -323,19 +373,6 @@ type Querier struct {
 		}
 		Stub func(context.Context) ([]postgres.PullRequestEvent, error)
 	}
-	GetPullRequestForUpdateCall struct {
-		mutex     sync.Mutex
-		CallCount int
-		Receives  struct {
-			Ctx context.Context
-			Id  int32
-		}
-		Returns struct {
-			PullRequest postgres.PullRequest
-			Error       error
-		}
-		Stub func(context.Context, int32) (postgres.PullRequest, error)
-	}
 	GetPullRequestsCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -349,19 +386,6 @@ type Querier struct {
 		Stub func(context.Context) ([]postgres.PullRequest, error)
 	}
 	GetRepoCall struct {
-		mutex     sync.Mutex
-		CallCount int
-		Receives  struct {
-			Ctx context.Context
-			Id  int32
-		}
-		Returns struct {
-			Repo  postgres.Repo
-			Error error
-		}
-		Stub func(context.Context, int32) (postgres.Repo, error)
-	}
-	GetRepoForUpdateCall struct {
 		mutex     sync.Mutex
 		CallCount int
 		Receives  struct {
@@ -461,6 +485,17 @@ func (f *Querier) CreateGithubUser(param1 context.Context, param2 postgres.Creat
 	}
 	return f.CreateGithubUserCall.Returns.GhUser, f.CreateGithubUserCall.Returns.Error
 }
+func (f *Querier) CreateInstallation(param1 context.Context, param2 int32) (int32, error) {
+	f.CreateInstallationCall.mutex.Lock()
+	defer f.CreateInstallationCall.mutex.Unlock()
+	f.CreateInstallationCall.CallCount++
+	f.CreateInstallationCall.Receives.Ctx = param1
+	f.CreateInstallationCall.Receives.Id = param2
+	if f.CreateInstallationCall.Stub != nil {
+		return f.CreateInstallationCall.Stub(param1, param2)
+	}
+	return f.CreateInstallationCall.Returns.Int32, f.CreateInstallationCall.Returns.Error
+}
 func (f *Querier) CreatePullRequest(param1 context.Context, param2 postgres.CreatePullRequestParams) (postgres.PullRequest, error) {
 	f.CreatePullRequestCall.mutex.Lock()
 	defer f.CreatePullRequestCall.mutex.Unlock()
@@ -526,6 +561,17 @@ func (f *Querier) DeleteGithubUser(param1 context.Context, param2 int32) error {
 		return f.DeleteGithubUserCall.Stub(param1, param2)
 	}
 	return f.DeleteGithubUserCall.Returns.Error
+}
+func (f *Querier) DeleteInstallation(param1 context.Context, param2 int32) error {
+	f.DeleteInstallationCall.mutex.Lock()
+	defer f.DeleteInstallationCall.mutex.Unlock()
+	f.DeleteInstallationCall.CallCount++
+	f.DeleteInstallationCall.Receives.Ctx = param1
+	f.DeleteInstallationCall.Receives.Id = param2
+	if f.DeleteInstallationCall.Stub != nil {
+		return f.DeleteInstallationCall.Stub(param1, param2)
+	}
+	return f.DeleteInstallationCall.Returns.Error
 }
 func (f *Querier) DeletePullRequest(param1 context.Context, param2 int32) error {
 	f.DeletePullRequestCall.mutex.Lock()
@@ -646,6 +692,27 @@ func (f *Querier) GetGithubUsers(param1 context.Context) ([]postgres.GhUser, err
 	}
 	return f.GetGithubUsersCall.Returns.GhUserSlice, f.GetGithubUsersCall.Returns.Error
 }
+func (f *Querier) GetInstallation(param1 context.Context, param2 int32) (int32, error) {
+	f.GetInstallationCall.mutex.Lock()
+	defer f.GetInstallationCall.mutex.Unlock()
+	f.GetInstallationCall.CallCount++
+	f.GetInstallationCall.Receives.Ctx = param1
+	f.GetInstallationCall.Receives.Id = param2
+	if f.GetInstallationCall.Stub != nil {
+		return f.GetInstallationCall.Stub(param1, param2)
+	}
+	return f.GetInstallationCall.Returns.Int32, f.GetInstallationCall.Returns.Error
+}
+func (f *Querier) GetInstallations(param1 context.Context) ([]int32, error) {
+	f.GetInstallationsCall.mutex.Lock()
+	defer f.GetInstallationsCall.mutex.Unlock()
+	f.GetInstallationsCall.CallCount++
+	f.GetInstallationsCall.Receives.Ctx = param1
+	if f.GetInstallationsCall.Stub != nil {
+		return f.GetInstallationsCall.Stub(param1)
+	}
+	return f.GetInstallationsCall.Returns.Int32Slice, f.GetInstallationsCall.Returns.Error
+}
 func (f *Querier) GetPullRequestAction(param1 context.Context, param2 string) (string, error) {
 	f.GetPullRequestActionCall.mutex.Lock()
 	defer f.GetPullRequestActionCall.mutex.Unlock()
@@ -710,17 +777,6 @@ func (f *Querier) GetPullRequestEvents(param1 context.Context) ([]postgres.PullR
 	}
 	return f.GetPullRequestEventsCall.Returns.PullRequestEventSlice, f.GetPullRequestEventsCall.Returns.Error
 }
-func (f *Querier) GetPullRequestForUpdate(param1 context.Context, param2 int32) (postgres.PullRequest, error) {
-	f.GetPullRequestForUpdateCall.mutex.Lock()
-	defer f.GetPullRequestForUpdateCall.mutex.Unlock()
-	f.GetPullRequestForUpdateCall.CallCount++
-	f.GetPullRequestForUpdateCall.Receives.Ctx = param1
-	f.GetPullRequestForUpdateCall.Receives.Id = param2
-	if f.GetPullRequestForUpdateCall.Stub != nil {
-		return f.GetPullRequestForUpdateCall.Stub(param1, param2)
-	}
-	return f.GetPullRequestForUpdateCall.Returns.PullRequest, f.GetPullRequestForUpdateCall.Returns.Error
-}
 func (f *Querier) GetPullRequests(param1 context.Context) ([]postgres.PullRequest, error) {
 	f.GetPullRequestsCall.mutex.Lock()
 	defer f.GetPullRequestsCall.mutex.Unlock()
@@ -741,17 +797,6 @@ func (f *Querier) GetRepo(param1 context.Context, param2 int32) (postgres.Repo, 
 		return f.GetRepoCall.Stub(param1, param2)
 	}
 	return f.GetRepoCall.Returns.Repo, f.GetRepoCall.Returns.Error
-}
-func (f *Querier) GetRepoForUpdate(param1 context.Context, param2 int32) (postgres.Repo, error) {
-	f.GetRepoForUpdateCall.mutex.Lock()
-	defer f.GetRepoForUpdateCall.mutex.Unlock()
-	f.GetRepoForUpdateCall.CallCount++
-	f.GetRepoForUpdateCall.Receives.Ctx = param1
-	f.GetRepoForUpdateCall.Receives.Id = param2
-	if f.GetRepoForUpdateCall.Stub != nil {
-		return f.GetRepoForUpdateCall.Stub(param1, param2)
-	}
-	return f.GetRepoForUpdateCall.Returns.Repo, f.GetRepoForUpdateCall.Returns.Error
 }
 func (f *Querier) GetRepos(param1 context.Context) ([]postgres.Repo, error) {
 	f.GetReposCall.mutex.Lock()

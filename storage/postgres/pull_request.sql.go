@@ -102,27 +102,6 @@ func (q *Queries) GetPullRequestByRepoIdPrId(ctx context.Context, arg GetPullReq
 	return i, err
 }
 
-const getPullRequestForUpdate = `-- name: GetPullRequestForUpdate :one
-SELECT id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged FROM pull_request
-WHERE id = $1 LIMIT 1
-FOR NO KEY UPDATE
-`
-
-func (q *Queries) GetPullRequestForUpdate(ctx context.Context, id int32) (PullRequest, error) {
-	row := q.db.QueryRow(ctx, getPullRequestForUpdate, id)
-	var i PullRequest
-	err := row.Scan(
-		&i.ID,
-		&i.RepoID,
-		&i.PrID,
-		&i.PrNumber,
-		&i.OpenedBy,
-		&i.InstallationID,
-		&i.IsMerged,
-	)
-	return i, err
-}
-
 const getPullRequests = `-- name: GetPullRequests :many
 SELECT id, repo_id, pr_id, pr_number, opened_by, installation_id, is_merged FROM pull_request
 `

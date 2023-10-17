@@ -51,19 +51,6 @@ func (q *Queries) GetRepo(ctx context.Context, id int32) (Repo, error) {
 	return i, err
 }
 
-const getRepoForUpdate = `-- name: GetRepoForUpdate :one
-SELECT id, org, name FROM repo
-WHERE id = $1 LIMIT 1
-FOR NO KEY UPDATE
-`
-
-func (q *Queries) GetRepoForUpdate(ctx context.Context, id int32) (Repo, error) {
-	row := q.db.QueryRow(ctx, getRepoForUpdate, id)
-	var i Repo
-	err := row.Scan(&i.ID, &i.Org, &i.Name)
-	return i, err
-}
-
 const getRepos = `-- name: GetRepos :many
 SELECT id, org, name FROM repo
 ORDER BY org, name

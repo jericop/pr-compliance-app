@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v53/github"
-	"github.com/google/uuid"
 	"github.com/jericop/pr-compliance-app/fakes"
 	"github.com/jericop/pr-compliance-app/storage/postgres"
 	"github.com/migueleliasweb/go-github-mock/src/mock"
@@ -203,6 +202,18 @@ func TestPostWebhookEvent(t *testing.T) {
 		})
 	})
 
+	t.Run("StatusBadRequest querier error GetOrInstallation", func(t *testing.T) {
+		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
+			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
+
+		fakeQuerier.GetInstallationCall.Returns.Error = fmt.Errorf("querier error")
+		fakeQuerier.CreateInstallationCall.Returns.Error = fmt.Errorf("querier error")
+
+		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+		})
+	})
+
 }
 
 type prEvent struct {
@@ -293,7 +304,11 @@ func TestGetCreateParamsFromEvent(t *testing.T) {
 }
 
 func updateQuerierWithSuccessPostWebhookEventReturns(querier *fakes.Querier) *fakes.Querier {
+	var installationID int32 = 8675309
+
 	e := newPrEvent("opened").getEvent()
+
+	querier.GetInstallationCall.Returns.Int32 = installationID
 
 	querier.GetPullRequestActionCall.Returns.String = "opened"
 
@@ -309,17 +324,18 @@ func updateQuerierWithSuccessPostWebhookEventReturns(querier *fakes.Querier) *fa
 	}
 
 	querier.GetPullRequestByRepoIdPrIdCall.Returns.PullRequest = postgres.PullRequest{
-		ID:       123,
-		RepoID:   int32(*e.Repo.ID),
-		PrID:     int32(*e.PullRequest.ID),
-		PrNumber: int32(*e.PullRequest.Number),
-		OpenedBy: int32(*e.Sender.ID),
-		IsMerged: false,
+		ID:             123,
+		RepoID:         int32(*e.Repo.ID),
+		PrID:           int32(*e.PullRequest.ID),
+		PrNumber:       int32(*e.PullRequest.Number),
+		OpenedBy:       int32(*e.Sender.ID),
+		InstallationID: installationID,
+		IsMerged:       false,
 	}
 
 	querier.GetApprovalByPrIDShaCall.Returns.Approval = postgres.Approval{
 		ID:         321,
-		Uuid:       uuid.New().String(),
+		Uuid:       "44c5f619-a14e-4820-9840-77c8047159e0", // Use static value so API Blueprint doesn't get regenerated every time tests are run
 		PrID:       int32(*e.PullRequest.ID),
 		Sha:        *e.PullRequest.Head.SHA,
 		IsApproved: false,
