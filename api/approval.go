@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -107,10 +108,12 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 		// TODO: Get these fields from the database at startup and then use them for all requests
 		Context:     github.String(statusContext),
 		Description: github.String(statusTitle),
-		TargetURL:   github.String(fmt.Sprintf("http://localhost:8080/approval/%s", p.Uuid)),
-		// TargetURL:   github.String(fmt.Sprintf("https://localhost:8080/approval?id=%s", p.Uuid)),
+		TargetURL:   github.String(fmt.Sprintf("%s/%s", server.frontEndUrl, p.Uuid)),
+		// TargetURL: github.String(fmt.Sprintf("%s?id=%s", server.frontEndUrl, p.Uuid)),
 		State: github.String("success"),
 	}
+
+	log.Printf("Creating a success commit status for approval uuid %s", p.Uuid)
 
 	_, _, err = client.Repositories.CreateStatus(ctx, inputs.Login, inputs.Name, inputs.Sha, repoStatus)
 	if err != nil {
@@ -118,7 +121,7 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pJSON, err := server.jsonMarshal(p)
+	pJSON, err := server.jsonMarshalFunc(p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

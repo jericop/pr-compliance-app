@@ -113,10 +113,15 @@ func TestPostWebhookEvent(t *testing.T) {
 		})
 	})
 
-	t.Run("StatusBadRequest querier error GetOrCreateApproval", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
+	t.Run("StatusBadRequest querier error UpdateApprovalByUuid", func(t *testing.T) {
+		fakeQuerier.UpdateApprovalByUuidCall.Returns.Error = fmt.Errorf("querier error")
 
+		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
+			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
+		})
+	})
+
+	t.Run("StatusBadRequest querier error GetOrCreateApproval", func(t *testing.T) {
 		fakeQuerier.GetApprovalByPrIDShaCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreateApprovalCall.Returns.Error = fmt.Errorf("querier error")
 
@@ -126,9 +131,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier error CreatePullRequestEvent", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.CreatePullRequestEventCall.Returns.Error = fmt.Errorf("querier error")
 
 		makeHttpRequest(t, http.StatusBadRequest, func() (resp *http.Response, err error) {
@@ -137,9 +139,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier error GetOrCreatePullRequest", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.GetPullRequestByRepoIdPrIdCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreatePullRequestCall.Returns.Error = fmt.Errorf("querier error")
 
@@ -149,9 +148,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier error GetOrCreateRepo", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.GetRepoCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreateRepoCall.Returns.Error = fmt.Errorf("querier error")
 
@@ -161,9 +157,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier error GetOrCreateGithubUser", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.GetGithubUserCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreateGithubUserCall.Returns.Error = fmt.Errorf("querier error")
 
@@ -173,9 +166,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier error GetOrCreatePullRequestAction", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreatePullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
 
@@ -185,9 +175,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier GetOrCreatePullRequestAction map update", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.GetPullRequestActionCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreatePullRequestActionCall.Returns.Error = nil
 
@@ -195,8 +182,8 @@ func TestPostWebhookEvent(t *testing.T) {
 			return http.Post(server.URL+urlPath, "application/json", bytes.NewBufferString("{}"))
 		})
 
-		if _, known := apiServer.KnownPullRequestActions["opened"]; !known {
-			t.Errorf("Expected 'opened' to be in map %#v", apiServer.KnownPullRequestActions)
+		if _, known := apiServer.knownPullRequestActions["opened"]; !known {
+			t.Errorf("Expected 'opened' to be in map %#v", apiServer.knownPullRequestActions)
 		}
 
 		// If it's not in the map then it will return an error
@@ -208,9 +195,6 @@ func TestPostWebhookEvent(t *testing.T) {
 	})
 
 	t.Run("StatusBadRequest querier error GetOrInstallation", func(t *testing.T) {
-		apiServer.githubFactory = NewMockGithubClientFactory(apiServer).
-			WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
-
 		fakeQuerier.GetInstallationCall.Returns.Error = fmt.Errorf("querier error")
 		fakeQuerier.CreateInstallationCall.Returns.Error = fmt.Errorf("querier error")
 
@@ -342,7 +326,7 @@ func updateQuerierWithSuccessPostWebhookEventReturns(querier *fakes.Querier) *fa
 		Uuid:       testUuid,
 		PrID:       int32(*e.PullRequest.ID),
 		Sha:        *e.PullRequest.Head.SHA,
-		IsApproved: false,
+		IsApproved: true,
 	}
 
 	return querier

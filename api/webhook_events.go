@@ -33,7 +33,11 @@ func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		log.Printf("Handling PullRequestEvent %s for PR %d on repo %s", event.GetAction(), event.GetNumber(), event.GetRepo().GetName())
-		err = server.processPullRequestEvent(ctx, event)
+
+		err := server.dbTxFactory.ExecWithTx(ctx, func(q postgres.Querier) error {
+			return server.processPullRequestEvent(ctx, q, event)
+		})
+
 		if err != nil {
 			log.Printf("error processing github pull request event %v", err)
 			http.Error(w, fmt.Sprintf("error processing github pull request event %v", err), http.StatusBadRequest)
@@ -44,70 +48,79 @@ func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (server *Server) processPullRequestEvent(ctx context.Context, event *github.PullRequestEvent) error {
+func (server *Server) processPullRequestEvent(ctx context.Context, querier postgres.Querier, event *github.PullRequestEvent) error {
 	// Params for creating db items populated from event info
 	p := getCreateParamsFromEvent(event)
 
 	switch event.GetAction() {
-	case "opened", "synchronize", "reopened", "closed":
-		if err := server.GetOrCreateInstallation(ctx, p.InstallationID); err != nil {
+	case "opened", "synchronize", "reopened":
+		if err := server.GetOrCreateInstallation(ctx, querier, p.InstallationID); err != nil {
 			return err
 		}
 
-		if err := server.GetOrCreatePullRequestAction(ctx, event.GetAction()); err != nil {
+		if err := server.GetOrCreatePullRequestAction(ctx, querier, event.GetAction()); err != nil {
 			return err
 		}
 
-		ghUser, err := server.GetOrCreateGithubUser(ctx, p.GithubUser)
+		ghUser, err := server.GetOrCreateGithubUser(ctx, querier, p.GithubUser)
 		if err != nil {
 			return err
 		}
 
-		repo, err := server.GetOrCreateRepo(ctx, p.Repo)
+		repo, err := server.GetOrCreateRepo(ctx, querier, p.Repo)
 		if err != nil {
 			return err
 		}
 
-		pr, err := server.GetOrCreatePullRequest(ctx, p.PullRequest)
+		pr, err := server.GetOrCreatePullRequest(ctx, querier, p.PullRequest)
 		if err != nil {
 			return err
 		}
 
-		_, err = server.querier.CreatePullRequestEvent(ctx, p.PullRequestEvent)
+		_, err = querier.CreatePullRequestEvent(ctx, p.PullRequestEvent)
 		if err != nil {
 			return err
 		}
 
-		approval, err := server.GetOrCreateApproval(ctx, p.Approval)
+		approval, err := server.GetOrCreateApproval(ctx, querier, p.Approval)
 		if err != nil {
 			return err
 		}
 
-		log.Printf("Creating a commit status for pull request %s/%d created by %s", repo.Name, pr.PrNumber, ghUser.Login)
+		if approval.IsApproved {
+			log.Printf("Removing approval for pull request %s/%d with sha %s", p.Repo.Name, p.PullRequest.PrNumber, p.PullRequestEvent.Sha)
+
+			p := postgres.UpdateApprovalByUuidParams{
+				Uuid:       approval.Uuid,
+				IsApproved: false,
+			}
+
+			if err := querier.UpdateApprovalByUuid(ctx, p); err != nil {
+				log.Printf("failed in the update")
+				return err
+			}
+		}
 
 		client, err := server.githubFactory.NewInstallationClient(ctx, event.GetInstallation().GetID())
 		if err != nil {
 			return fmt.Errorf("github client error %v", err)
 		}
 
-		failedStatus := &github.RepoStatus{
+		s := &github.RepoStatus{
 			// TODO: Get these fields from the database at startup and then use them for all requests
 			Context:     github.String(statusContext),
 			Description: github.String(statusTitle),
-			TargetURL:   github.String(fmt.Sprintf("http://localhost:8080/approval/%s", approval.Uuid)),
-			// TargetURL:   github.String(fmt.Sprintf("https://localhost:8080/approval?id=%s", approval.Uuid)),
-			State: github.String("error"), // "error" or "failure" show up as a red X
+			TargetURL:   github.String(fmt.Sprintf("%s/%s", server.frontEndUrl, approval.Uuid)),
+			// TargetURL: github.String(fmt.Sprintf("%s?id=%s", server.frontEndUrl, approval.Uuid)),
+			State: github.String("error"),
 		}
 
-		_, _, err = client.Repositories.CreateStatus(
-			ctx, p.GithubUser.Login, p.Repo.Name, p.PullRequestEvent.Sha, failedStatus,
-		)
+		log.Printf("Creating an error commit status for pull request %s/%d created by %s", repo.Name, pr.PrNumber, ghUser.Login)
+
+		_, _, err = client.Repositories.CreateStatus(ctx, p.GithubUser.Login, p.Repo.Name, p.PullRequestEvent.Sha, s)
 		if err != nil {
 			return err
 		}
-
-		log.Printf("created repo status (check) for pull request %s/%d", repo.Name, pr.PrNumber)
-
 	}
 	return nil
 }
@@ -126,9 +139,6 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 	if event.Organization != nil {
 		orgName = *event.Organization.Name
 	}
-
-	log.Printf("installation %#v", event.GetInstallation())
-	log.Printf("account %#v", event.GetInstallation().GetAccount())
 
 	return PullRequestEventCreateParams{
 		InstallationID: int32(event.GetInstallation().GetID()),
@@ -163,11 +173,11 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 	}
 }
 
-func (server *Server) GetOrCreateInstallation(ctx context.Context, id int32) error {
-	if _, err := server.querier.GetInstallation(ctx, id); err != nil {
+func (server *Server) GetOrCreateInstallation(ctx context.Context, querier postgres.Querier, id int32) error {
+	if _, err := querier.GetInstallation(ctx, id); err != nil {
 		log.Printf("Creating installation %d", id)
 
-		_, err = server.querier.CreateInstallation(ctx, id)
+		_, err = querier.CreateInstallation(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -176,15 +186,13 @@ func (server *Server) GetOrCreateInstallation(ctx context.Context, id int32) err
 	return nil
 }
 
-func (server *Server) GetOrCreateGithubUser(ctx context.Context, p postgres.CreateGithubUserParams) (postgres.GhUser, error) {
-	ghUser, err := server.querier.GetGithubUser(ctx, p.ID)
+func (server *Server) GetOrCreateGithubUser(ctx context.Context, querier postgres.Querier, p postgres.CreateGithubUserParams) (postgres.GhUser, error) {
+	ghUser, err := querier.GetGithubUser(ctx, p.ID)
 	if err != nil {
-		// log.Printf("Error getting ghUser %#v: %v", p, err)
 		log.Printf("Creating ghUser %#v", p)
 
-		ghUser, err = server.querier.CreateGithubUser(ctx, p)
+		ghUser, err = querier.CreateGithubUser(ctx, p)
 		if err != nil {
-			// log.Printf("Error creating ghUser %#v: %v", p, err)
 			return postgres.GhUser{}, err
 		}
 	}
@@ -192,15 +200,13 @@ func (server *Server) GetOrCreateGithubUser(ctx context.Context, p postgres.Crea
 	return ghUser, nil
 }
 
-func (server *Server) GetOrCreateRepo(ctx context.Context, p postgres.CreateRepoParams) (postgres.Repo, error) {
-	repo, err := server.querier.GetRepo(ctx, p.ID)
+func (server *Server) GetOrCreateRepo(ctx context.Context, querier postgres.Querier, p postgres.CreateRepoParams) (postgres.Repo, error) {
+	repo, err := querier.GetRepo(ctx, p.ID)
 	if err != nil {
-		// log.Printf("Error getting repo %#v: %v", p, err)
 		log.Printf("Creating repo %#v", p)
 
-		repo, err = server.querier.CreateRepo(ctx, p)
+		repo, err = querier.CreateRepo(ctx, p)
 		if err != nil {
-			// log.Printf("Error creating repo %#v: %v", p, err)
 			return postgres.Repo{}, err
 		}
 	}
@@ -208,20 +214,18 @@ func (server *Server) GetOrCreateRepo(ctx context.Context, p postgres.CreateRepo
 	return repo, nil
 }
 
-func (server *Server) GetOrCreatePullRequest(ctx context.Context, p postgres.CreatePullRequestParams) (postgres.PullRequest, error) {
+func (server *Server) GetOrCreatePullRequest(ctx context.Context, querier postgres.Querier, p postgres.CreatePullRequestParams) (postgres.PullRequest, error) {
 	queryParams := postgres.GetPullRequestByRepoIdPrIdParams{
 		RepoID: p.RepoID,
 		PrID:   p.PrID,
 	}
 
-	pr, err := server.querier.GetPullRequestByRepoIdPrId(ctx, queryParams)
+	pr, err := querier.GetPullRequestByRepoIdPrId(ctx, queryParams)
 	if err != nil {
-		// log.Printf("Error getting pr %#v : %v", queryParams, err)
 		log.Printf("Creating pr %#v", p)
 
-		pr, err = server.querier.CreatePullRequest(ctx, p)
+		pr, err = querier.CreatePullRequest(ctx, p)
 		if err != nil {
-			// log.Printf("Error creating pr %#v: %v", p, err)
 			return postgres.PullRequest{}, err
 		}
 	}
@@ -229,20 +233,18 @@ func (server *Server) GetOrCreatePullRequest(ctx context.Context, p postgres.Cre
 	return pr, nil
 }
 
-func (server *Server) GetOrCreateApproval(ctx context.Context, p postgres.CreateApprovalParams) (postgres.Approval, error) {
+func (server *Server) GetOrCreateApproval(ctx context.Context, querier postgres.Querier, p postgres.CreateApprovalParams) (postgres.Approval, error) {
 	queryParams := postgres.GetApprovalByPrIDShaParams{
 		PrID: p.PrID,
 		Sha:  p.Sha,
 	}
 
-	approval, err := server.querier.GetApprovalByPrIDSha(ctx, queryParams)
+	approval, err := querier.GetApprovalByPrIDSha(ctx, queryParams)
 	if err != nil {
-		// log.Printf("Error getting approval %#v: %v", p, err)
 		log.Printf("Creating approval %#v", p)
 
-		approval, err = server.querier.CreateApproval(ctx, p)
+		approval, err = querier.CreateApproval(ctx, p)
 		if err != nil {
-			// log.Printf("Error creating approval %#v: %v", p, err)
 			return postgres.Approval{}, err
 		}
 	}
@@ -250,21 +252,20 @@ func (server *Server) GetOrCreateApproval(ctx context.Context, p postgres.Create
 	return approval, nil
 }
 
-func (server *Server) GetOrCreatePullRequestAction(ctx context.Context, name string) error {
-	_, known := server.KnownPullRequestActions[name]
+func (server *Server) GetOrCreatePullRequestAction(ctx context.Context, querier postgres.Querier, name string) error {
+	_, known := server.knownPullRequestActions[name]
 	if known {
-		log.Printf("Known action %s", name)
 		return nil
 	}
 
-	if _, err := server.querier.GetPullRequestAction(ctx, name); err != nil {
+	if _, err := querier.GetPullRequestAction(ctx, name); err != nil {
 		log.Printf("Creating pull request (event) action %s", name)
 
-		_, err = server.querier.CreatePullRequestAction(ctx, name)
+		_, err = querier.CreatePullRequestAction(ctx, name)
 		if err != nil {
 			return err
 		}
-		server.KnownPullRequestActions[name] = struct{}{}
+		server.knownPullRequestActions[name] = struct{}{}
 	}
 
 	return nil

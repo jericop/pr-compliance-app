@@ -42,7 +42,7 @@ func TestValidatWebhookRequest(t *testing.T) {
 		},
 	}
 
-	api := getApiServer(&fakes.Querier{})
+	api := NewMockedApiServer(&fakes.Querier{})
 	api.githubFactory = NewGithubFactory(api)
 
 	for n, test := range tests {

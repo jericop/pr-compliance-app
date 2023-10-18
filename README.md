@@ -13,14 +13,17 @@ This GitHub App create a status check on all PRs that require a form to be submi
 
 ## Environment variables
 
-You must create a `.env` file that docker-compose will use to run your app. This will be populated with the private key and client secret that was used to create your github app.
+You must create a `.env` file that docker-compose will use to run your app. This will be populated with the private key and client secret that was used to create your github app, along with other required inputs.
 
 ### Example
 
 Note that the `DATABASE_URL` should not be changed when testing the app locally with docker-compose.
 
 ```bash
+API_LISTEN_PORT=8080
+APP_FRONTEND_URL=http://localhost:8080/approval
 DATABASE_URL=postgres://postgres:postgres@postgres:5432/pr_compliance
+
 GITHUB_APP_IDENTIFIER=123456
 GITHUB_WEBHOOK_SECRET=some secret data
 GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----

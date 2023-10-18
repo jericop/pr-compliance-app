@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -24,5 +25,5 @@ func main() {
 		log.Fatalf("Error setting up server: %v\n", err)
 	}
 
-	http.ListenAndServe(":8080", apiServer.GetRouter())
+	http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("API_LISTEN_PORT")), apiServer.GetRouter())
 }

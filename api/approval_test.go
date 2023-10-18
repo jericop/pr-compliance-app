@@ -112,7 +112,7 @@ func TestUpdateApproval(t *testing.T) {
 			name:        "StatusInternalServerError marshal error",
 			contentType: "application/json",
 			beforeFunc: func() {
-				apiServer.jsonMarshal = func(v interface{}) ([]byte, error) {
+				apiServer.jsonMarshalFunc = func(v interface{}) ([]byte, error) {
 					return []byte{}, fmt.Errorf("marshal error")
 				}
 			},
@@ -120,7 +120,7 @@ func TestUpdateApproval(t *testing.T) {
 				return bytes.NewBuffer(pJson)
 			},
 			afterFunc: func() {
-				apiServer.jsonMarshal = json.Marshal
+				apiServer.jsonMarshalFunc = json.Marshal
 			},
 			wantStatusCode: http.StatusInternalServerError,
 			url:            server.URL + urlPath,

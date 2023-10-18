@@ -17,28 +17,31 @@ import (
 type Server struct {
 	connPool                *pgxpool.Pool
 	querier                 postgres.Querier
-	jsonMarshal             func(v any) ([]byte, error) // Allows json.Marshal to be mocked
+	jsonMarshalFunc         func(v any) ([]byte, error) // Allows json.Marshal to be mocked
+	frontEndUrl             string
 	githubAppId             string
 	githubWebhookSecret     string
 	githubPrivateKey        *rsa.PrivateKey
 	githubFactory           githubFactoryInterface // Allows github operations to be mocked
 	router                  *mux.Router
-	KnownPullRequestActions map[string]struct{}
+	dbTxFactory             postgres.DatabaseTransactionFactory // Allows db transactions to be mocked
+	knownPullRequestActions map[string]struct{}
 }
 
-// NewServer creates a new HTTP server and sets up routing.
 func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error) {
 	server := &Server{
 		connPool:                connPool,
 		querier:                 querier,
-		jsonMarshal:             json.Marshal,
+		jsonMarshalFunc:         json.Marshal,
+		frontEndUrl:             os.Getenv("APP_FRONTEND_URL"),
 		githubAppId:             os.Getenv("GITHUB_APP_IDENTIFIER"),
 		githubWebhookSecret:     os.Getenv("GITHUB_WEBHOOK_SECRET"),
 		router:                  mux.NewRouter(),
-		KnownPullRequestActions: make(map[string]struct{}),
+		knownPullRequestActions: make(map[string]struct{}),
 	}
 
 	server.githubFactory = NewGithubFactory(server)
+	server.dbTxFactory = postgres.NewPostgresTransactionFactory(connPool)
 
 	server.AddAllRoutes()
 
@@ -51,10 +54,14 @@ func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error
 
 	actions, err := querier.GetPullRequestActions(context.Background())
 	for _, action := range actions {
-		server.KnownPullRequestActions[action] = struct{}{}
+		server.knownPullRequestActions[action] = struct{}{}
 	}
 
 	return server, nil
+}
+
+func (server *Server) GetQuerier() *postgres.Queries {
+	return postgres.New(server.connPool)
 }
 
 func (server *Server) GetRouter() *mux.Router {
@@ -78,11 +85,11 @@ func (server *Server) WithPrivateKey(key *rsa.PrivateKey) *Server {
 	return server
 }
 
-// ExecTx executes a function within a database transaction
-func (server *Server) execTx(ctx context.Context, fn func(postgres.Querier) error) error {
+// ExecWithTx executes a function within a database transaction
+func (server *Server) ExecWithTx(ctx context.Context, fn func(postgres.Querier) error) error {
 	tx, err := server.connPool.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("tx begin err: %v", err)
 	}
 
 	q := postgres.New(tx)
@@ -94,5 +101,6 @@ func (server *Server) execTx(ctx context.Context, fn func(postgres.Querier) erro
 		return err
 	}
 
-	return tx.Commit(ctx)
+	err = tx.Commit(ctx)
+	return err
 }
