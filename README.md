@@ -17,7 +17,7 @@ You must create a `.env` file that docker-compose will use to run your app. This
 
 ### Example
 
-Note that the `DATABASE_URL` should not be changed when testing the app locally with docker-compose.
+Note that for local testing the `API_LISTEN_PORT`, `APP_FRONTEND_URL`, and `DATABASE_URL` environment variables should not be changed.
 
 ```bash
 API_LISTEN_PORT=8080
@@ -34,7 +34,8 @@ private key here ...
 
 # Running the app (locally)
 
-* You will need to build the binary and create a container for the app. We use [paketo](https://paketo.io/) [cloud native buildpacks](https://buildpacks.io/) to do that with one command.
+* You will need to build the binary and create a container for the app.
+	* ([paketo](https://paketo.io/)) [cloud native buildpacks](https://buildpacks.io/) are used to do this with one command (below)
 * You then use docker-compose to bring the app up or down.
 
 ## Commands
@@ -84,7 +85,3 @@ smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 ## Tests
 
 This project strives for high test coverage, especially where it matters most. Since `test2doc` is used to generate the API Blueprint document, all of the api endpoints should be tested. This also assumes that any api changes will come with full tests, so the API Blueprint document stays up to date.
-
-# TODO
-
-* Use database transactions for `/webhook_events` endpoint because multiple tables are modified before the status check is created.
