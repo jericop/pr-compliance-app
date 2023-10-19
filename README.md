@@ -78,6 +78,10 @@ curl -X POST http://localhost:8080/approval -H 'Content-Type: application/json' 
 # Get current question answers after update to confirm it worked
 curl http://localhost:8080/approval/$uuid | jq
 
+# You could also just approve the form without changing any answers
+curl -X POST http://localhost:8080/approval -H 'Content-Type: application/json' \
+	-d "$(curl -s http://localhost:8080/approval/$uuid)"
+
 ```
 
 # App Details
