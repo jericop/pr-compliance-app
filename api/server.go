@@ -26,9 +26,11 @@ type Server struct {
 	router                  *mux.Router
 	dbTxFactory             postgres.DatabaseTransactionFactory // Allows db transactions to be mocked
 	knownPullRequestActions map[string]struct{}
+	schema                  postgres.ApprovalSchema
 }
 
 func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error) {
+	ctx := context.Background()
 	server := &Server{
 		connPool:                connPool,
 		querier:                 querier,
@@ -52,10 +54,19 @@ func NewServer(connPool *pgxpool.Pool, querier postgres.Querier) (*Server, error
 	}
 	server.githubPrivateKey = parsedPrivateKey
 
-	actions, err := querier.GetPullRequestActions(context.Background())
+	actions, err := querier.GetPullRequestActions(ctx)
+	if err != nil {
+		return &Server{}, err
+	}
 	for _, action := range actions {
 		server.knownPullRequestActions[action] = struct{}{}
 	}
+
+	schema, err := querier.GetDefaultApprovalSchema(ctx)
+	if err != nil {
+		return &Server{}, err
+	}
+	server.schema = schema
 
 	return server, nil
 }
@@ -83,24 +94,4 @@ func (server *Server) WithRoutes() *Server {
 func (server *Server) WithPrivateKey(key *rsa.PrivateKey) *Server {
 	server.githubPrivateKey = key
 	return server
-}
-
-// ExecWithTx executes a function within a database transaction
-func (server *Server) ExecWithTx(ctx context.Context, fn func(postgres.Querier) error) error {
-	tx, err := server.connPool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("tx begin err: %v", err)
-	}
-
-	q := postgres.New(tx)
-	err = fn(q)
-	if err != nil {
-		if rbErr := tx.Rollback(ctx); rbErr != nil {
-			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
-		}
-		return err
-	}
-
-	err = tx.Commit(ctx)
-	return err
 }

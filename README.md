@@ -58,6 +58,28 @@ pack build pr-compliance-app && docker-compose down -v --remove-orphans && docke
 smee --url https://smee.io/some-unique-id --path /webhook_events --port 8080
 ```
 
+## Updating approvals
+
+The app is designed to have a front-end make api calls to update approvals. This can be simulated with curl as shown in the example below.
+
+```bash
+# Replace this with the uuid from the status check link created by the app
+uuid=1a0679db-e993-48bd-b2e4-0f3e5192f0b3
+
+# Get current question answers before update (all yes answers are false by default)
+curl http://localhost:8080/approval/$uuid | jq
+
+# Get current question answers and change all false values to true
+updated_answers=$(curl -s http://localhost:8080/approval/$uuid | sed 's/false/true/g')
+
+# Update database with new answers
+curl -X POST http://localhost:8080/approval -H 'Content-Type: application/json' -d "$updated_answers"
+
+# Get current question answers after update to confirm it worked
+curl http://localhost:8080/approval/$uuid | jq
+
+```
+
 # App Details
 
 * A postgres database is used as the backend.

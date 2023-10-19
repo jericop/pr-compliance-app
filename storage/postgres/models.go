@@ -10,11 +10,36 @@ import (
 
 type Approval struct {
 	ID          int32     `json:"id"`
+	SchemaID    int32     `json:"schema_id"`
 	Uuid        string    `json:"uuid"`
 	PrID        int32     `json:"pr_id"`
 	Sha         string    `json:"sha"`
 	IsApproved  bool      `json:"is_approved"`
 	LastUpdated time.Time `json:"last_updated"`
+}
+
+type ApprovalSchema struct {
+	ID            int32  `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	StatusContext string `json:"status_context"`
+	StatusTitle   string `json:"status_title"`
+}
+
+type ApprovalYesAnswer struct {
+	ApprovalID int32 `json:"approval_id"`
+	QuestionID int32 `json:"question_id"`
+}
+
+type ApprovalYesnoQuestion struct {
+	ID           int32  `json:"id"`
+	SchemaID     int32  `json:"schema_id"`
+	QuestionText string `json:"question_text"`
+}
+
+type DefaultApprovalSchema struct {
+	ID       int32 `json:"id"`
+	SchemaID int32 `json:"schema_id"`
 }
 
 type GhUser struct {

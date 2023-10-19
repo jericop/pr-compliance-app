@@ -12,22 +12,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func (server *Server) validatWebhookRequest(r *http.Request) (interface{}, error) {
-	// Validate payload from request using webhook secret
-	payload, err := github.ValidatePayload(r, []byte(server.githubWebhookSecret))
-	if err != nil {
-		return nil, fmt.Errorf("failed to validate payload: %v", err)
-	}
-
-	// Parse event from payload
-	event, err := github.ParseWebHook(github.WebHookType(r), payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse webhook into event: %v", err)
-	}
-
-	return event, nil
-}
-
+// Create and return a new http client with jwt token from server's githubPrivateKey
 func (server *Server) newSignedHttpClient(ctx context.Context) (*http.Client, error) {
 	now := time.Now()
 

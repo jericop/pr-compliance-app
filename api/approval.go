@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/google/go-github/v53/github"
 	"github.com/gorilla/mux"
@@ -33,48 +32,36 @@ func (server *Server) GetApprovalQueryParam(w http.ResponseWriter, req *http.Req
 }
 
 func (server *Server) getApproval(w http.ResponseWriter, req *http.Request, uuid string) {
-	w.Header().Set("Content-Type", "text/html")
-	html := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
-    <head>
-    <title>PR Compliance App</title>    
-		
-    </head>
-    <body>
-		<p>The following form must be submitted before the PR can be merged</p>
-		<br>
-		<h1>Approval</h1>
-		<form action="%s" method="POST" novalidate>
-			<input type="hidden" id="uuid" name="uuid" value="%s">
-			<input type="hidden" id="is_approved" name="is_approved" value="true">	
-				<input type="submit" value="Approve">
-			</div>
-		</form>
-    </body>
-</html>
-	`, "http://localhost:8080/approval", uuid)
-	fmt.Fprintf(w, html)
+	ctx := context.Background()
+
+	questions, err := server.querier.GetSortedApprovalYesNoQuestionAnswersByUuid(ctx, uuid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	approvalQuestions := &ApprovalYesNoQuestionAnswersResponse{
+		Uuid:      uuid,
+		Questions: questions,
+	}
+
+	approvalQuestionsJSON, err := server.jsonMarshalFunc(approvalQuestions)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, string(approvalQuestionsJSON))
 }
 
 func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
-	var p postgres.UpdateApprovalByUuidParams
+	var p ApprovalYesNoQuestionAnswersResponse
+
+	ctx := context.Background()
 
 	switch req.Header.Get("Content-Type") {
-	case "application/x-www-form-urlencoded":
-		req.ParseForm() // error is ignored because it always returns nil, even with bad input data
-
-		isApproved, err := strconv.ParseBool(req.Form.Get("is_approved"))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		p = postgres.UpdateApprovalByUuidParams{
-			Uuid:       req.Form.Get("uuid"),
-			IsApproved: isApproved,
-		}
-	default: // assume "application/json"
+	case "application/json":
 		decoder := json.NewDecoder(req.Body)
 
 		err := decoder.Decode(&p)
@@ -82,42 +69,75 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+	default:
+		http.Error(w, fmt.Sprintf("invalid content-type %s", req.Header.Get("Content-Type")), http.StatusBadRequest)
+		return
 	}
 
-	err := server.querier.UpdateApprovalByUuid(context.Background(), p)
+	c, err := server.querier.GetSortedApprovalYesNoQuestionAnswersByUuid(ctx, p.Uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	ctx := context.Background()
+	currentYes := getYesAnswerMap(ApprovalYesNoQuestionAnswersResponse{Uuid: p.Uuid, Questions: c})
+	postedYes := getYesAnswerMap(p)
 
-	inputs, err := server.querier.GetCreateStatusInputsFromApprovalUuid(ctx, p.Uuid)
+	err = server.dbTxFactory.ExecWithTx(ctx, func(q postgres.Querier) error {
+		// Create entries for questions that were answered yes
+		for question_id, _ := range postedYes {
+			if _, known := currentYes[question_id]; !known {
+				_, err := q.CreateApprovalYesAnswerByUuid(ctx, postgres.CreateApprovalYesAnswerByUuidParams{Uuid: p.Uuid, QuestionID: question_id})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// Delete entries for questions that were previously answered yes, but now are not
+		for question_id, _ := range currentYes {
+			if _, known := postedYes[question_id]; !known {
+				err := q.DeleteApprovalYesAnswerByUuid(ctx, postgres.DeleteApprovalYesAnswerByUuidParams{Uuid: p.Uuid, QuestionID: question_id})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		err := q.UpdateApprovalByUuid(ctx, postgres.UpdateApprovalByUuidParams{Uuid: p.Uuid, IsApproved: true})
+		if err != nil {
+			return err
+		}
+
+		inputs, err := q.GetCreateStatusInputsFromApprovalUuid(ctx, p.Uuid)
+		if err != nil {
+			return err
+		}
+
+		client, err := server.githubFactory.NewInstallationClient(ctx, int64(inputs.InstallationID))
+		if err != nil {
+			return err
+		}
+
+		repoStatus := &github.RepoStatus{
+			Context:     github.String(server.schema.StatusContext),
+			Description: github.String(server.schema.StatusTitle),
+			TargetURL:   github.String(fmt.Sprintf("%s/%s", server.frontEndUrl, p.Uuid)),
+			// TargetURL: github.String(fmt.Sprintf("%s?id=%s", server.frontEndUrl, p.Uuid)),
+			State: github.String("success"),
+		}
+
+		log.Printf("Creating a success commit status for approval uuid %s", p.Uuid)
+
+		_, _, err = client.Repositories.CreateStatus(ctx, inputs.Login, inputs.Name, inputs.Sha, repoStatus)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	client, err := server.githubFactory.NewInstallationClient(ctx, int64(inputs.InstallationID))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	repoStatus := &github.RepoStatus{
-		// TODO: Get these fields from the database at startup and then use them for all requests
-		Context:     github.String(statusContext),
-		Description: github.String(statusTitle),
-		TargetURL:   github.String(fmt.Sprintf("%s/%s", server.frontEndUrl, p.Uuid)),
-		// TargetURL: github.String(fmt.Sprintf("%s?id=%s", server.frontEndUrl, p.Uuid)),
-		State: github.String("success"),
-	}
-
-	log.Printf("Creating a success commit status for approval uuid %s", p.Uuid)
-
-	_, _, err = client.Repositories.CreateStatus(ctx, inputs.Login, inputs.Name, inputs.Sha, repoStatus)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("installations error %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -131,5 +151,24 @@ func (server *Server) UpdateApproval(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, string(pJSON))
+}
 
+func getYesAnswerMap(r ApprovalYesNoQuestionAnswersResponse) map[int32]struct{} {
+	m := make(map[int32]struct{})
+
+	for _, question := range r.Questions {
+		if question.AnsweredYes {
+			m[question.ID] = struct{}{}
+		}
+	}
+	return m
+}
+
+type UrlEncodedFormAnswers struct {
+	Data string `json:"data"`
+}
+
+type ApprovalYesNoQuestionAnswersResponse struct {
+	Uuid      string                                                    `json:"uuid"`
+	Questions []postgres.GetSortedApprovalYesNoQuestionAnswersByUuidRow `json:"questions"`
 }

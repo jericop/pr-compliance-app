@@ -6,27 +6,6 @@
 ### POST [POST]
 
 
-+ Request (application/x-www-form-urlencoded)
-
-
-
-    + Body
-
-            is_approved=true&uuid=5fcae4d5-fbb6-417d-8267-70f9b0f6d28f        
-
-+ Response 201 (application/json)
-
-
-
-    + Body
-
-            {
-                "uuid": "5fcae4d5-fbb6-417d-8267-70f9b0f6d28f",
-                "is_approved": true
-            }        
-
-
-
 + Request (application/json)
 
 
@@ -35,7 +14,18 @@
 
             {
                 "uuid": "5fcae4d5-fbb6-417d-8267-70f9b0f6d28f",
-                "is_approved": true
+                "questions": [
+                    {
+                        "id": 1,
+                        "question_text": "Are there any bugs in this code",
+                        "answered_yes": false
+                    },
+                    {
+                        "id": 2,
+                        "question_text": "Are you sure there are no bugs",
+                        "answered_yes": false
+                    }
+                ]
             }        
 
 + Response 201 (application/json)
@@ -46,7 +36,18 @@
 
             {
                 "uuid": "5fcae4d5-fbb6-417d-8267-70f9b0f6d28f",
-                "is_approved": true
+                "questions": [
+                    {
+                        "id": 1,
+                        "question_text": "Are there any bugs in this code",
+                        "answered_yes": false
+                    },
+                    {
+                        "id": 2,
+                        "question_text": "Are you sure there are no bugs",
+                        "answered_yes": false
+                    }
+                ]
             }        
 
 
@@ -59,32 +60,27 @@
 ### GET [GET]
 
 
-+ Response 200 (text/html)
++ Response 200 (application/json)
 
 
 
     + Body
 
-            
-<!DOCTYPE html>
-<html>
-    <head>
-    <title>PR Compliance App</title>    
-		
-    </head>
-    <body>
-		<p>The following form must be submitted before the PR can be merged</p>
-		<br>
-		<h1>Approval</h1>
-		<form action="http://localhost:8080/approval" method="POST" novalidate>
-			<input type="hidden" id="uuid" name="uuid" value="5fcae4d5-fbb6-417d-8267-70f9b0f6d28f">
-			<input type="hidden" id="is_approved" name="is_approved" value="true">	
-				<input type="submit" value="Approve">
-			</div>
-		</form>
-    </body>
-</html>
-	        
+            {
+                "uuid": "5fcae4d5-fbb6-417d-8267-70f9b0f6d28f",
+                "questions": [
+                    {
+                        "id": 1,
+                        "question_text": "Are there any bugs in this code",
+                        "answered_yes": false
+                    },
+                    {
+                        "id": 2,
+                        "question_text": "Are you sure there are no bugs",
+                        "answered_yes": false
+                    }
+                ]
+            }        
 
 
 
@@ -96,32 +92,27 @@
 ### GET [GET]
 
 
-+ Response 200 (text/html)
++ Response 200 (application/json)
 
 
 
     + Body
 
-            
-<!DOCTYPE html>
-<html>
-    <head>
-    <title>PR Compliance App</title>    
-		
-    </head>
-    <body>
-		<p>The following form must be submitted before the PR can be merged</p>
-		<br>
-		<h1>Approval</h1>
-		<form action="http://localhost:8080/approval" method="POST" novalidate>
-			<input type="hidden" id="uuid" name="uuid" value="5fcae4d5-fbb6-417d-8267-70f9b0f6d28f">
-			<input type="hidden" id="is_approved" name="is_approved" value="true">	
-				<input type="submit" value="Approve">
-			</div>
-		</form>
-    </body>
-</html>
-	        
+            {
+                "uuid": "5fcae4d5-fbb6-417d-8267-70f9b0f6d28f",
+                "questions": [
+                    {
+                        "id": 1,
+                        "question_text": "Are there any bugs in this code",
+                        "answered_yes": false
+                    },
+                    {
+                        "id": 2,
+                        "question_text": "Are you sure there are no bugs",
+                        "answered_yes": false
+                    }
+                ]
+            }        
 
 
 
@@ -149,11 +140,36 @@
 
 + Request (application/json)
 
-
+    + Headers
+            
+            X-Github-Event: pull_request
+            X-Hub-Signature: sha1=0a11a09af220595f7e39583bdc861df7235034f9
 
     + Body
 
-            {}        
+            {
+                "action": "opened",
+                "number": 1,
+                "pull_request": {
+                    "id": 9991,
+                    "number": 1,
+                    "merged": false,
+                    "head": {
+                        "sha": "038d718da6a1ebbc6a7780a96ed75a70cc2ad6e2"
+                    }
+                },
+                "repository": {
+                    "id": 80,
+                    "name": "hello-world-app"
+                },
+                "sender": {
+                    "login": "frodo",
+                    "id": 1
+                },
+                "installation": {
+                    "id": 8675309
+                }
+            }        
 
 + Response 200 
 

@@ -1,7 +1,7 @@
 -- name: CreateApproval :one
-INSERT INTO approval(uuid, pr_id, sha, is_approved)
+INSERT INTO approval(schema_id, uuid, pr_id, sha, is_approved)
 VALUES 
-  ($1, $2, $3, $4)
+  ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetApprovalById :one
@@ -27,18 +27,10 @@ SELECT * FROM approval;
 DELETE FROM approval
 WHERE id = $1;
 
-
-
-
 -- name: GetCreateStatusInputsFromApprovalUuid :one
 SELECT p.installation_id, u.login, r.name, a.sha
 FROM approval a, pull_request p, repo r, gh_user u
-WHERE a.uuid = $1 AND a.pr_id = p.pr_id AND p.opened_by = u.id AND p.repo_id = r.id;
-
--- Another way to write the same query above
-SELECT gh_user.login, repo.name, approval.sha
-FROM approval
-INNER JOIN pull_request ON approval.pr_id = pull_request.pr_id
-INNER JOIN repo ON pull_request.repo_id = repo.id
-INNER JOIN gh_user ON pull_request.opened_by = gh_user.id
-WHERE approval.uuid = $1 LIMIT 1;
+WHERE a.uuid = $1 AND 
+  a.pr_id = p.pr_id AND 
+  p.opened_by = u.id AND 
+  p.repo_id = r.id;

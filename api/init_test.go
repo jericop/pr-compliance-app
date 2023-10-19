@@ -15,18 +15,21 @@ import (
 var test2docServer *test.Server
 var apiServer *Server
 var fakeQuerier *fakes.Querier
+var testPrivateKey *rsa.PrivateKey
 
 func TestMain(m *testing.M) {
 	var err error
 	fakeQuerier = &fakes.Querier{}
 
 	// Generate RSA key.
-	key, err := rsa.GenerateKey(rand.Reader, 4096)
+	testPrivateKey, err = rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	apiServer = NewMockedApiServer(fakeQuerier).WithRoutes().WithPrivateKey(key)
+	apiServer = NewMockedApiServer(fakeQuerier).
+		WithRoutes().
+		WithPrivateKey(testPrivateKey)
 
 	test.RegisterURLVarExtractor(vars.MakeGorillaMuxExtractor(apiServer.router))
 

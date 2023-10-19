@@ -95,12 +95,21 @@ type mockGithubFactory struct {
 func NewMockGithubClientFactory(server *Server) *mockGithubFactory {
 	factory := &mockGithubFactory{server: server}
 
-	// default mocks for factory
+	// Default mocks for factory
 	factory.defaultClient = mock.NewMockedHTTPClient(
 		mock.WithRequestMatch(
 			mock.PostReposStatusesByOwnerByRepoBySha,
 			// Multiple return responses supported (and required for some tests)
-			// Adding additional responses fixes: http: panic serving 127.0.0.1:59729: runtime error: index out of range [1] with length 1
+			// Adding additional responses fixes: http: panic serving 127.0.0.1:59729: runtime error: index out of range [x] with length x
+			github.RepoStatus{
+				ID: github.Int64(int64(333)),
+			},
+			github.RepoStatus{
+				ID: github.Int64(int64(333)),
+			},
+			github.RepoStatus{
+				ID: github.Int64(int64(333)),
+			},
 			github.RepoStatus{
 				ID: github.Int64(int64(333)),
 			},
@@ -111,8 +120,18 @@ func NewMockGithubClientFactory(server *Server) *mockGithubFactory {
 				ID: github.Int64(int64(333)),
 			},
 		),
+		// Same as above
 		mock.WithRequestMatch(
 			mock.PostAppInstallationsAccessTokensByInstallationId,
+			github.InstallationToken{
+				Token: github.String("something"),
+			},
+			github.InstallationToken{
+				Token: github.String("something"),
+			},
+			github.InstallationToken{
+				Token: github.String("something"),
+			},
 			github.InstallationToken{
 				Token: github.String("something"),
 			},

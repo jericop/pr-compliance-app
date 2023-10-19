@@ -11,11 +11,6 @@ import (
 	"github.com/jericop/pr-compliance-app/storage/postgres"
 )
 
-const (
-	statusContext = "Pull Request Compliance"
-	statusTitle   = "User Review Required"
-)
-
 func (server *Server) AddWebhookEventsRoutes() {
 	server.router.HandleFunc("/webhook_events", server.PostWebhookEvent).Methods("Post").Name("PostWebhookEvent")
 }
@@ -49,8 +44,8 @@ func (server *Server) PostWebhookEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) processPullRequestEvent(ctx context.Context, querier postgres.Querier, event *github.PullRequestEvent) error {
-	// Params for creating db items populated from event info
-	p := getCreateParamsFromEvent(event)
+	// Params for creating db items populated from event info and schema id
+	p := getCreateParamsFromEvent(event, server.schema.ID)
 
 	switch event.GetAction() {
 	case "opened", "synchronize", "reopened":
@@ -96,7 +91,6 @@ func (server *Server) processPullRequestEvent(ctx context.Context, querier postg
 			}
 
 			if err := querier.UpdateApprovalByUuid(ctx, p); err != nil {
-				log.Printf("failed in the update")
 				return err
 			}
 		}
@@ -107,9 +101,8 @@ func (server *Server) processPullRequestEvent(ctx context.Context, querier postg
 		}
 
 		s := &github.RepoStatus{
-			// TODO: Get these fields from the database at startup and then use them for all requests
-			Context:     github.String(statusContext),
-			Description: github.String(statusTitle),
+			Context:     github.String(server.schema.StatusContext),
+			Description: github.String(server.schema.StatusTitle),
 			TargetURL:   github.String(fmt.Sprintf("%s/%s", server.frontEndUrl, approval.Uuid)),
 			// TargetURL: github.String(fmt.Sprintf("%s?id=%s", server.frontEndUrl, approval.Uuid)),
 			State: github.String("error"),
@@ -134,7 +127,7 @@ type PullRequestEventCreateParams struct {
 	Approval         postgres.CreateApprovalParams
 }
 
-func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCreateParams {
+func getCreateParamsFromEvent(event *github.PullRequestEvent, schemaId int32) PullRequestEventCreateParams {
 	orgName := "" // blank for non-organization accounts
 	if event.Organization != nil {
 		orgName = *event.Organization.Name
@@ -165,6 +158,7 @@ func getCreateParamsFromEvent(event *github.PullRequestEvent) PullRequestEventCr
 			IsMerged: event.PullRequest.GetMerged(),
 		},
 		Approval: postgres.CreateApprovalParams{
+			SchemaID:   int32(schemaId),
 			Uuid:       uuid.New().String(),
 			PrID:       int32(event.PullRequest.GetID()),
 			Sha:        *event.GetPullRequest().GetHead().SHA,
