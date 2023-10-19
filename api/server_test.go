@@ -2,8 +2,6 @@ package api
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,11 +13,6 @@ import (
 )
 
 func NewMockedApiServer(querier *fakes.Querier) *Server {
-	key, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		panic(err.Error())
-	}
-
 	server := &Server{
 		querier:                 querier,
 		frontEndUrl:             "http://localhost:8080/approval",
@@ -27,10 +20,12 @@ func NewMockedApiServer(querier *fakes.Querier) *Server {
 		jsonMarshalFunc:         json.Marshal,
 		router:                  mux.NewRouter(),
 		knownPullRequestActions: map[string]struct{}{},
-		githubPrivateKey:        key,
+		githubPrivateKey:        testPrivateKey,
 	}
 
-	server.githubFactory = NewMockGithubClientFactory(server)
+	server.githubFactory = NewMockGithubClientFactory(server).
+		WithValidateWebhookRequestReturns(newPrEvent("opened").getEvent(), nil)
+
 	server.dbTxFactory = NewMockPostgresTransactionFactory(querier) // No-op transaction mock
 
 	return server

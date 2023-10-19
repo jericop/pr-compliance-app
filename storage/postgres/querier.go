@@ -10,6 +10,8 @@ import (
 
 type Querier interface {
 	CreateApproval(ctx context.Context, arg CreateApprovalParams) (Approval, error)
+	CreateApprovalYesAnswer(ctx context.Context, arg CreateApprovalYesAnswerParams) (ApprovalYesAnswer, error)
+	CreateApprovalYesAnswerByUuid(ctx context.Context, arg CreateApprovalYesAnswerByUuidParams) (ApprovalYesAnswer, error)
 	CreateGithubUser(ctx context.Context, arg CreateGithubUserParams) (GhUser, error)
 	CreateInstallation(ctx context.Context, id int32) (int32, error)
 	CreatePullRequest(ctx context.Context, arg CreatePullRequestParams) (PullRequest, error)
@@ -17,6 +19,8 @@ type Querier interface {
 	CreatePullRequestEvent(ctx context.Context, arg CreatePullRequestEventParams) (PullRequestEvent, error)
 	CreateRepo(ctx context.Context, arg CreateRepoParams) (Repo, error)
 	DeleteApproval(ctx context.Context, id int32) error
+	DeleteApprovalYesAnswer(ctx context.Context, arg DeleteApprovalYesAnswerParams) error
+	DeleteApprovalYesAnswerByUuid(ctx context.Context, arg DeleteApprovalYesAnswerByUuidParams) error
 	DeleteGithubUser(ctx context.Context, id int32) error
 	DeleteInstallation(ctx context.Context, id int32) error
 	DeletePullRequest(ctx context.Context, id int32) error
@@ -26,8 +30,10 @@ type Querier interface {
 	GetApprovalById(ctx context.Context, id int32) (Approval, error)
 	GetApprovalByPrIDSha(ctx context.Context, arg GetApprovalByPrIDShaParams) (Approval, error)
 	GetApprovalByUuid(ctx context.Context, uuid string) (Approval, error)
+	GetApprovalSchemaById(ctx context.Context, id int32) (ApprovalSchema, error)
 	GetApprovals(ctx context.Context) ([]Approval, error)
 	GetCreateStatusInputsFromApprovalUuid(ctx context.Context, uuid string) (GetCreateStatusInputsFromApprovalUuidRow, error)
+	GetDefaultApprovalSchema(ctx context.Context) (ApprovalSchema, error)
 	GetGithubUser(ctx context.Context, id int32) (GhUser, error)
 	GetGithubUsers(ctx context.Context) ([]GhUser, error)
 	GetInstallation(ctx context.Context, id int32) (int32, error)
@@ -41,6 +47,8 @@ type Querier interface {
 	GetPullRequests(ctx context.Context) ([]PullRequest, error)
 	GetRepo(ctx context.Context, id int32) (Repo, error)
 	GetRepos(ctx context.Context) ([]Repo, error)
+	GetSortedApprovalYesNoQuestionAnswersByUuid(ctx context.Context, uuid string) ([]GetSortedApprovalYesNoQuestionAnswersByUuidRow, error)
+	GetSortedApprovalYesNoQuestionsBySchemaId(ctx context.Context, name string) ([]GetSortedApprovalYesNoQuestionsBySchemaIdRow, error)
 	UpdateApprovalByUuid(ctx context.Context, arg UpdateApprovalByUuidParams) error
 	UpdatePullRequestIsMerged(ctx context.Context, arg UpdatePullRequestIsMergedParams) (PullRequest, error)
 	UpdateRepoName(ctx context.Context, arg UpdateRepoNameParams) (Repo, error)

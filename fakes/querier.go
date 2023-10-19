@@ -21,6 +21,32 @@ type Querier struct {
 		}
 		Stub func(context.Context, postgres.CreateApprovalParams) (postgres.Approval, error)
 	}
+	CreateApprovalYesAnswerCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.CreateApprovalYesAnswerParams
+		}
+		Returns struct {
+			ApprovalYesAnswer postgres.ApprovalYesAnswer
+			Error             error
+		}
+		Stub func(context.Context, postgres.CreateApprovalYesAnswerParams) (postgres.ApprovalYesAnswer, error)
+	}
+	CreateApprovalYesAnswerByUuidCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.CreateApprovalYesAnswerByUuidParams
+		}
+		Returns struct {
+			ApprovalYesAnswer postgres.ApprovalYesAnswer
+			Error             error
+		}
+		Stub func(context.Context, postgres.CreateApprovalYesAnswerByUuidParams) (postgres.ApprovalYesAnswer, error)
+	}
 	CreateGithubUserCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -110,6 +136,30 @@ type Querier struct {
 			Error error
 		}
 		Stub func(context.Context, int32) error
+	}
+	DeleteApprovalYesAnswerCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.DeleteApprovalYesAnswerParams
+		}
+		Returns struct {
+			Error error
+		}
+		Stub func(context.Context, postgres.DeleteApprovalYesAnswerParams) error
+	}
+	DeleteApprovalYesAnswerByUuidCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Arg postgres.DeleteApprovalYesAnswerByUuidParams
+		}
+		Returns struct {
+			Error error
+		}
+		Stub func(context.Context, postgres.DeleteApprovalYesAnswerByUuidParams) error
 	}
 	DeleteGithubUserCall struct {
 		mutex     sync.Mutex
@@ -222,6 +272,19 @@ type Querier struct {
 		}
 		Stub func(context.Context, string) (postgres.Approval, error)
 	}
+	GetApprovalSchemaByIdCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+			Id  int32
+		}
+		Returns struct {
+			ApprovalSchema postgres.ApprovalSchema
+			Error          error
+		}
+		Stub func(context.Context, int32) (postgres.ApprovalSchema, error)
+	}
 	GetApprovalsCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -246,6 +309,18 @@ type Querier struct {
 			Error                                    error
 		}
 		Stub func(context.Context, string) (postgres.GetCreateStatusInputsFromApprovalUuidRow, error)
+	}
+	GetDefaultApprovalSchemaCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx context.Context
+		}
+		Returns struct {
+			ApprovalSchema postgres.ApprovalSchema
+			Error          error
+		}
+		Stub func(context.Context) (postgres.ApprovalSchema, error)
 	}
 	GetGithubUserCall struct {
 		mutex     sync.Mutex
@@ -410,6 +485,32 @@ type Querier struct {
 		}
 		Stub func(context.Context) ([]postgres.Repo, error)
 	}
+	GetSortedApprovalYesNoQuestionAnswersByUuidCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx  context.Context
+			Uuid string
+		}
+		Returns struct {
+			GetSortedApprovalYesNoQuestionAnswersByUuidRowSlice []postgres.GetSortedApprovalYesNoQuestionAnswersByUuidRow
+			Error                                               error
+		}
+		Stub func(context.Context, string) ([]postgres.GetSortedApprovalYesNoQuestionAnswersByUuidRow, error)
+	}
+	GetSortedApprovalYesNoQuestionsBySchemaIdCall struct {
+		mutex     sync.Mutex
+		CallCount int
+		Receives  struct {
+			Ctx  context.Context
+			Name string
+		}
+		Returns struct {
+			GetSortedApprovalYesNoQuestionsBySchemaIdRowSlice []postgres.GetSortedApprovalYesNoQuestionsBySchemaIdRow
+			Error                                             error
+		}
+		Stub func(context.Context, string) ([]postgres.GetSortedApprovalYesNoQuestionsBySchemaIdRow, error)
+	}
 	UpdateApprovalByUuidCall struct {
 		mutex     sync.Mutex
 		CallCount int
@@ -473,6 +574,28 @@ func (f *Querier) CreateApproval(param1 context.Context, param2 postgres.CreateA
 		return f.CreateApprovalCall.Stub(param1, param2)
 	}
 	return f.CreateApprovalCall.Returns.Approval, f.CreateApprovalCall.Returns.Error
+}
+func (f *Querier) CreateApprovalYesAnswer(param1 context.Context, param2 postgres.CreateApprovalYesAnswerParams) (postgres.ApprovalYesAnswer, error) {
+	f.CreateApprovalYesAnswerCall.mutex.Lock()
+	defer f.CreateApprovalYesAnswerCall.mutex.Unlock()
+	f.CreateApprovalYesAnswerCall.CallCount++
+	f.CreateApprovalYesAnswerCall.Receives.Ctx = param1
+	f.CreateApprovalYesAnswerCall.Receives.Arg = param2
+	if f.CreateApprovalYesAnswerCall.Stub != nil {
+		return f.CreateApprovalYesAnswerCall.Stub(param1, param2)
+	}
+	return f.CreateApprovalYesAnswerCall.Returns.ApprovalYesAnswer, f.CreateApprovalYesAnswerCall.Returns.Error
+}
+func (f *Querier) CreateApprovalYesAnswerByUuid(param1 context.Context, param2 postgres.CreateApprovalYesAnswerByUuidParams) (postgres.ApprovalYesAnswer, error) {
+	f.CreateApprovalYesAnswerByUuidCall.mutex.Lock()
+	defer f.CreateApprovalYesAnswerByUuidCall.mutex.Unlock()
+	f.CreateApprovalYesAnswerByUuidCall.CallCount++
+	f.CreateApprovalYesAnswerByUuidCall.Receives.Ctx = param1
+	f.CreateApprovalYesAnswerByUuidCall.Receives.Arg = param2
+	if f.CreateApprovalYesAnswerByUuidCall.Stub != nil {
+		return f.CreateApprovalYesAnswerByUuidCall.Stub(param1, param2)
+	}
+	return f.CreateApprovalYesAnswerByUuidCall.Returns.ApprovalYesAnswer, f.CreateApprovalYesAnswerByUuidCall.Returns.Error
 }
 func (f *Querier) CreateGithubUser(param1 context.Context, param2 postgres.CreateGithubUserParams) (postgres.GhUser, error) {
 	f.CreateGithubUserCall.mutex.Lock()
@@ -550,6 +673,28 @@ func (f *Querier) DeleteApproval(param1 context.Context, param2 int32) error {
 		return f.DeleteApprovalCall.Stub(param1, param2)
 	}
 	return f.DeleteApprovalCall.Returns.Error
+}
+func (f *Querier) DeleteApprovalYesAnswer(param1 context.Context, param2 postgres.DeleteApprovalYesAnswerParams) error {
+	f.DeleteApprovalYesAnswerCall.mutex.Lock()
+	defer f.DeleteApprovalYesAnswerCall.mutex.Unlock()
+	f.DeleteApprovalYesAnswerCall.CallCount++
+	f.DeleteApprovalYesAnswerCall.Receives.Ctx = param1
+	f.DeleteApprovalYesAnswerCall.Receives.Arg = param2
+	if f.DeleteApprovalYesAnswerCall.Stub != nil {
+		return f.DeleteApprovalYesAnswerCall.Stub(param1, param2)
+	}
+	return f.DeleteApprovalYesAnswerCall.Returns.Error
+}
+func (f *Querier) DeleteApprovalYesAnswerByUuid(param1 context.Context, param2 postgres.DeleteApprovalYesAnswerByUuidParams) error {
+	f.DeleteApprovalYesAnswerByUuidCall.mutex.Lock()
+	defer f.DeleteApprovalYesAnswerByUuidCall.mutex.Unlock()
+	f.DeleteApprovalYesAnswerByUuidCall.CallCount++
+	f.DeleteApprovalYesAnswerByUuidCall.Receives.Ctx = param1
+	f.DeleteApprovalYesAnswerByUuidCall.Receives.Arg = param2
+	if f.DeleteApprovalYesAnswerByUuidCall.Stub != nil {
+		return f.DeleteApprovalYesAnswerByUuidCall.Stub(param1, param2)
+	}
+	return f.DeleteApprovalYesAnswerByUuidCall.Returns.Error
 }
 func (f *Querier) DeleteGithubUser(param1 context.Context, param2 int32) error {
 	f.DeleteGithubUserCall.mutex.Lock()
@@ -650,6 +795,17 @@ func (f *Querier) GetApprovalByUuid(param1 context.Context, param2 string) (post
 	}
 	return f.GetApprovalByUuidCall.Returns.Approval, f.GetApprovalByUuidCall.Returns.Error
 }
+func (f *Querier) GetApprovalSchemaById(param1 context.Context, param2 int32) (postgres.ApprovalSchema, error) {
+	f.GetApprovalSchemaByIdCall.mutex.Lock()
+	defer f.GetApprovalSchemaByIdCall.mutex.Unlock()
+	f.GetApprovalSchemaByIdCall.CallCount++
+	f.GetApprovalSchemaByIdCall.Receives.Ctx = param1
+	f.GetApprovalSchemaByIdCall.Receives.Id = param2
+	if f.GetApprovalSchemaByIdCall.Stub != nil {
+		return f.GetApprovalSchemaByIdCall.Stub(param1, param2)
+	}
+	return f.GetApprovalSchemaByIdCall.Returns.ApprovalSchema, f.GetApprovalSchemaByIdCall.Returns.Error
+}
 func (f *Querier) GetApprovals(param1 context.Context) ([]postgres.Approval, error) {
 	f.GetApprovalsCall.mutex.Lock()
 	defer f.GetApprovalsCall.mutex.Unlock()
@@ -670,6 +826,16 @@ func (f *Querier) GetCreateStatusInputsFromApprovalUuid(param1 context.Context, 
 		return f.GetCreateStatusInputsFromApprovalUuidCall.Stub(param1, param2)
 	}
 	return f.GetCreateStatusInputsFromApprovalUuidCall.Returns.GetCreateStatusInputsFromApprovalUuidRow, f.GetCreateStatusInputsFromApprovalUuidCall.Returns.Error
+}
+func (f *Querier) GetDefaultApprovalSchema(param1 context.Context) (postgres.ApprovalSchema, error) {
+	f.GetDefaultApprovalSchemaCall.mutex.Lock()
+	defer f.GetDefaultApprovalSchemaCall.mutex.Unlock()
+	f.GetDefaultApprovalSchemaCall.CallCount++
+	f.GetDefaultApprovalSchemaCall.Receives.Ctx = param1
+	if f.GetDefaultApprovalSchemaCall.Stub != nil {
+		return f.GetDefaultApprovalSchemaCall.Stub(param1)
+	}
+	return f.GetDefaultApprovalSchemaCall.Returns.ApprovalSchema, f.GetDefaultApprovalSchemaCall.Returns.Error
 }
 func (f *Querier) GetGithubUser(param1 context.Context, param2 int32) (postgres.GhUser, error) {
 	f.GetGithubUserCall.mutex.Lock()
@@ -807,6 +973,28 @@ func (f *Querier) GetRepos(param1 context.Context) ([]postgres.Repo, error) {
 		return f.GetReposCall.Stub(param1)
 	}
 	return f.GetReposCall.Returns.RepoSlice, f.GetReposCall.Returns.Error
+}
+func (f *Querier) GetSortedApprovalYesNoQuestionAnswersByUuid(param1 context.Context, param2 string) ([]postgres.GetSortedApprovalYesNoQuestionAnswersByUuidRow, error) {
+	f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.mutex.Lock()
+	defer f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.mutex.Unlock()
+	f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.CallCount++
+	f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.Receives.Ctx = param1
+	f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.Receives.Uuid = param2
+	if f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.Stub != nil {
+		return f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.Stub(param1, param2)
+	}
+	return f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.Returns.GetSortedApprovalYesNoQuestionAnswersByUuidRowSlice, f.GetSortedApprovalYesNoQuestionAnswersByUuidCall.Returns.Error
+}
+func (f *Querier) GetSortedApprovalYesNoQuestionsBySchemaId(param1 context.Context, param2 string) ([]postgres.GetSortedApprovalYesNoQuestionsBySchemaIdRow, error) {
+	f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.mutex.Lock()
+	defer f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.mutex.Unlock()
+	f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.CallCount++
+	f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.Receives.Ctx = param1
+	f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.Receives.Name = param2
+	if f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.Stub != nil {
+		return f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.Stub(param1, param2)
+	}
+	return f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.Returns.GetSortedApprovalYesNoQuestionsBySchemaIdRowSlice, f.GetSortedApprovalYesNoQuestionsBySchemaIdCall.Returns.Error
 }
 func (f *Querier) UpdateApprovalByUuid(param1 context.Context, param2 postgres.UpdateApprovalByUuidParams) error {
 	f.UpdateApprovalByUuidCall.mutex.Lock()

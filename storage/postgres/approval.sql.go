@@ -10,13 +10,14 @@ import (
 )
 
 const createApproval = `-- name: CreateApproval :one
-INSERT INTO approval(uuid, pr_id, sha, is_approved)
+INSERT INTO approval(schema_id, uuid, pr_id, sha, is_approved)
 VALUES 
-  ($1, $2, $3, $4)
-RETURNING id, uuid, pr_id, sha, is_approved, last_updated
+  ($1, $2, $3, $4, $5)
+RETURNING id, schema_id, uuid, pr_id, sha, is_approved, last_updated
 `
 
 type CreateApprovalParams struct {
+	SchemaID   int32  `json:"schema_id"`
 	Uuid       string `json:"uuid"`
 	PrID       int32  `json:"pr_id"`
 	Sha        string `json:"sha"`
@@ -25,6 +26,7 @@ type CreateApprovalParams struct {
 
 func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) (Approval, error) {
 	row := q.db.QueryRow(ctx, createApproval,
+		arg.SchemaID,
 		arg.Uuid,
 		arg.PrID,
 		arg.Sha,
@@ -33,6 +35,7 @@ func (q *Queries) CreateApproval(ctx context.Context, arg CreateApprovalParams) 
 	var i Approval
 	err := row.Scan(
 		&i.ID,
+		&i.SchemaID,
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
@@ -53,7 +56,7 @@ func (q *Queries) DeleteApproval(ctx context.Context, id int32) error {
 }
 
 const getApprovalById = `-- name: GetApprovalById :one
-SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
+SELECT id, schema_id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 WHERE id = $1 LIMIT 1
 `
 
@@ -62,6 +65,7 @@ func (q *Queries) GetApprovalById(ctx context.Context, id int32) (Approval, erro
 	var i Approval
 	err := row.Scan(
 		&i.ID,
+		&i.SchemaID,
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
@@ -72,7 +76,7 @@ func (q *Queries) GetApprovalById(ctx context.Context, id int32) (Approval, erro
 }
 
 const getApprovalByPrIDSha = `-- name: GetApprovalByPrIDSha :one
-SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
+SELECT id, schema_id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 WHERE pr_id = $1 AND sha = $2 LIMIT 1
 `
 
@@ -86,6 +90,7 @@ func (q *Queries) GetApprovalByPrIDSha(ctx context.Context, arg GetApprovalByPrI
 	var i Approval
 	err := row.Scan(
 		&i.ID,
+		&i.SchemaID,
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
@@ -96,7 +101,7 @@ func (q *Queries) GetApprovalByPrIDSha(ctx context.Context, arg GetApprovalByPrI
 }
 
 const getApprovalByUuid = `-- name: GetApprovalByUuid :one
-SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
+SELECT id, schema_id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 WHERE uuid = $1 LIMIT 1
 `
 
@@ -105,6 +110,7 @@ func (q *Queries) GetApprovalByUuid(ctx context.Context, uuid string) (Approval,
 	var i Approval
 	err := row.Scan(
 		&i.ID,
+		&i.SchemaID,
 		&i.Uuid,
 		&i.PrID,
 		&i.Sha,
@@ -115,7 +121,7 @@ func (q *Queries) GetApprovalByUuid(ctx context.Context, uuid string) (Approval,
 }
 
 const getApprovals = `-- name: GetApprovals :many
-SELECT id, uuid, pr_id, sha, is_approved, last_updated FROM approval
+SELECT id, schema_id, uuid, pr_id, sha, is_approved, last_updated FROM approval
 `
 
 func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
@@ -129,6 +135,7 @@ func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
 		var i Approval
 		if err := rows.Scan(
 			&i.ID,
+			&i.SchemaID,
 			&i.Uuid,
 			&i.PrID,
 			&i.Sha,
@@ -148,7 +155,10 @@ func (q *Queries) GetApprovals(ctx context.Context) ([]Approval, error) {
 const getCreateStatusInputsFromApprovalUuid = `-- name: GetCreateStatusInputsFromApprovalUuid :one
 SELECT p.installation_id, u.login, r.name, a.sha
 FROM approval a, pull_request p, repo r, gh_user u
-WHERE a.uuid = $1 AND a.pr_id = p.pr_id AND p.opened_by = u.id AND p.repo_id = r.id
+WHERE a.uuid = $1 AND 
+  a.pr_id = p.pr_id AND 
+  p.opened_by = u.id AND 
+  p.repo_id = r.id
 `
 
 type GetCreateStatusInputsFromApprovalUuidRow struct {
