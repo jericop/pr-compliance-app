@@ -1,0 +1,122 @@
+name: BuildKit multi-arch build
+
+on:
+  push:
+    branches:
+      - pack-buildkit-poc
+      - main
+  workflow_dispatch:
+
+jobs:
+  buildkit-dockerfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+
+      - name: Checkout pack (buildkit fork)
+        uses: actions/checkout@v4
+        with:
+          repository: jericop/pack
+          ref: buildkit-multi-arch-poc
+          path: pack-src
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: pack-src/go.mod
+
+      - name: Build pack from source
+        run: |
+          cd pack-src
+          go build -o ../pack-bin .
+          cd ..
+          ./pack-bin version
+          ./pack-bin config experimental true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create buildx builder
+        run: |
+          docker buildx create --name pack-multiplatform --driver docker-container --bootstrap --use
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and publish (buildkit-dockerfile)
+        run: |
+          ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform
+
+      - name: Verify manifest list
+        run: |
+          docker buildx imagetools inspect ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile
+
+  buildkit-llb:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+
+      - name: Checkout pack (buildkit fork)
+        uses: actions/checkout@v4
+        with:
+          repository: jericop/pack
+          ref: buildkit-multi-arch-poc
+          path: pack-src
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: pack-src/go.mod
+
+      - name: Build pack from source
+        run: |
+          cd pack-src
+          go build -o ../pack-bin .
+          cd ..
+          ./pack-bin version
+          ./pack-bin config experimental true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create buildx builder
+        run: |
+          docker buildx create --name pack-multiplatform --driver docker-container --bootstrap --use
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and publish (buildkit-llb)
+        run: |
+          ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform \
+            --build-backend buildkit-llb
+
+      - name: Verify manifest list
+        run: |
+          docker buildx imagetools inspect ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb

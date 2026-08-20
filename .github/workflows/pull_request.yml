@@ -12,3 +12,16 @@ jobs:
           go-version-file: go.mod
       - name: Run make test
         run: make test
+
+  build-with-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pack
+        uses: buildpacks/github-actions/setup-pack@v5.8.11
+      - name: Build with pack (standard)
+        run: |
+          pack build pr-compliance-app:test \
+            --builder paketobuildpacks/ubuntu-noble-builder:latest \
+            --trust-builder
