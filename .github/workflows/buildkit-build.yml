@@ -54,7 +54,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -68,7 +67,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -82,7 +80,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -99,7 +96,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -158,7 +154,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -173,7 +168,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -188,7 +182,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
@@ -206,7 +199,6 @@ jobs:
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
-            --lifecycle-image jericop/lifecycle:skip-chown-poc \
             --platforms linux/amd64,linux/arm64 \
             --buildkit \
             --publish \
