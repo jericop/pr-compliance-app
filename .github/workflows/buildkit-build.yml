@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout app
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout pack (buildkit fork)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: jericop/pack
-          ref: buildkit-multi-arch-poc
+          ref: buildkit-multi-arc-poc
           path: pack-src
 
       - name: Set up Go
@@ -68,13 +68,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout app
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout pack (buildkit fork)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: jericop/pack
-          ref: buildkit-multi-arch-poc
+          ref: buildkit-multi-arc-poc
           path: pack-src
 
       - name: Set up Go
