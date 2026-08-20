@@ -47,9 +47,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and publish (buildkit-dockerfile)
+      - name: "Build 1: Initial build (no cache)"
         run: |
-          ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile \
+          echo "=== INITIAL BUILD (no cache) ==="
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile \
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
@@ -59,6 +60,53 @@ jobs:
             --publish \
             --trust-builder \
             --buildkit-builder pack-multiplatform
+
+      - name: "Build 2: Rebuild (buildkit layer cache)"
+        run: |
+          echo "=== REBUILD (should use buildkit layer cache) ==="
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform
+
+      - name: "Build 3: With registry cache export"
+        run: |
+          echo "=== BUILD WITH REGISTRY CACHE EXPORT ==="
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform \
+            --buildkit-cache-to type=registry,ref=${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:cache-buildkit-dockerfile,mode=max
+
+      - name: "Build 4: From registry cache (simulating fresh CI)"
+        run: |
+          echo "=== BUILD FROM REGISTRY CACHE (simulating fresh runner) ==="
+          docker buildx rm pack-multiplatform
+          docker buildx create --name pack-multiplatform --driver docker-container --bootstrap --use
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-dockerfile \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform \
+            --buildkit-cache-from type=registry,ref=${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:cache-buildkit-dockerfile \
+            --buildkit-cache-to type=registry,ref=${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:cache-buildkit-dockerfile,mode=max
 
       - name: Verify manifest list
         run: |
@@ -103,9 +151,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and publish (buildkit-llb)
+      - name: "Build 1: Initial build (no cache)"
         run: |
-          ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb \
+          echo "=== INITIAL BUILD (no cache) ==="
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb \
             --path . \
             --builder jericop/ubuntu-noble-builder:skip-chown-poc \
             --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
@@ -116,6 +165,56 @@ jobs:
             --trust-builder \
             --buildkit-builder pack-multiplatform \
             --build-backend buildkit-llb
+
+      - name: "Build 2: Rebuild (buildkit layer cache)"
+        run: |
+          echo "=== REBUILD (should use buildkit cache mounts) ==="
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform \
+            --build-backend buildkit-llb
+
+      - name: "Build 3: With registry cache export"
+        run: |
+          echo "=== BUILD WITH REGISTRY CACHE EXPORT ==="
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform \
+            --build-backend buildkit-llb \
+            --buildkit-cache-to type=registry,ref=${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:cache-buildkit-llb,mode=max
+
+      - name: "Build 4: From registry cache (simulating fresh CI)"
+        run: |
+          echo "=== BUILD FROM REGISTRY CACHE (simulating fresh runner) ==="
+          docker buildx rm pack-multiplatform
+          docker buildx create --name pack-multiplatform --driver docker-container --bootstrap --use
+          time ./pack-bin build ${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:buildkit-llb \
+            --path . \
+            --builder jericop/ubuntu-noble-builder:skip-chown-poc \
+            --run-image paketobuildpacks/ubuntu-noble-run-tiny:latest \
+            --lifecycle-image jericop/lifecycle:skip-chown-poc \
+            --platforms linux/amd64,linux/arm64 \
+            --buildkit \
+            --publish \
+            --trust-builder \
+            --buildkit-builder pack-multiplatform \
+            --build-backend buildkit-llb \
+            --buildkit-cache-from type=registry,ref=${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:cache-buildkit-llb \
+            --buildkit-cache-to type=registry,ref=${{ secrets.DOCKERHUB_ORG }}/pr-compliance-app:cache-buildkit-llb,mode=max
 
       - name: Verify manifest list
         run: |
