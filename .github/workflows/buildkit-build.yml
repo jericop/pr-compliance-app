@@ -83,9 +83,10 @@ jobs:
         if: ${{ env.PACK_IMAGE != '' }}
         run: |
           echo "=== pack from IMAGE: ${PACK_IMAGE} ==="
-          # Runner is amd64; pull the amd64 variant so the extracted binary runs here.
-          docker pull --platform linux/amd64 "${PACK_IMAGE}"
-          cid="$(docker create --platform linux/amd64 "${PACK_IMAGE}")"
+          # docker pull/create resolve to the runner's platform by default, so the
+          # extracted binary matches the runner architecture.
+          docker pull "${PACK_IMAGE}"
+          cid="$(docker create "${PACK_IMAGE}")"
           # The published image's entrypoint is /usr/local/bin/pack.
           docker cp "${cid}:/usr/local/bin/pack" "${GITHUB_WORKSPACE}/pack-bin"
           docker rm "${cid}" >/dev/null
